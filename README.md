@@ -77,13 +77,6 @@ Create .aws/config and enter the following:
 region=your_region
 ```
 
-
-
-### If you wish to operate in docker image:
-* `docker login build-repo-1.in.ionicsecurity.com:6000/sidevops/buildtools/java`
-* `docker pull build-repo-1.in.ionicsecurity.com:6000/sidevops/buildtools/java`
-* `docker run --rm -h buildcontainer -it -v ${IONIC_SDK_PATH}:/ionic -v ${PWD}:/project -v ${HOME}/.m2:/root/.m2 -v ${HOME}/.aws:/root/.aws -e IONIC_SDK_PATH=/ionic build-repo-1.in.ionicsecurity.com:6000/sidevops/buildtools/java /bin/bash`
-
 ### Build the Project
 #### Establish IONIC_SDK_PATH
 Note that you will need to set the environment variable $IONIC_SDK_PATH to point wherever you extracted the Ionic SDK. This directory should include the Lib and Include directories.
@@ -111,5 +104,6 @@ The user can run the program with either "put" or "get" commands with usage as f
 #### Using the Library
 
 Using the library as a developer is documented in the `docs/content/` directories.
-The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.0.1.jar`.
+The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.6.0.jar`.
 This JAR is thin, and needs the Ionic SDK and the AWS SDKs available during builds that use it.
+
