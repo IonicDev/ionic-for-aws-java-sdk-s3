@@ -1,0 +1,9 @@
+.DS_Store
+target
+*.log
+
+# IDEs
+.classpath
+.project
+.idea
+.settings
