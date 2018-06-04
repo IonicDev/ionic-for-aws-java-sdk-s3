@@ -1,5 +1,5 @@
 /*
- * (c) 2017 Ionic Security Inc.
+ * (c) 2017-2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
@@ -11,9 +11,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.ionic.sdk.agent.Agent;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorBase;
-import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
 import com.ionic.sdk.error.AgentErrorModuleConstants;
-import com.ionic.sdk.error.SdkException;
+import com.ionic.sdk.error.IonicException;
 import com.ionic.sdk.agent.data.MetadataMap;
 
 /**
@@ -32,11 +31,12 @@ public class ISAgentPool {
     private DeviceProfilePersistorBase persistor;
 
     /**
-     * getAgent() acquires an Agent from the AgentPool 
-     * @return: Agent
-     * @throws: SdkException
+     * getAgent() acquires an Agent from the AgentPool
+     *
+     * @return a {@link com.ionic.sdk.agent.Agent} object.
+     * @throws com.ionic.sdk.error.IonicException if any.
      */
-    public Agent getAgent() throws SdkException
+    public Agent getAgent() throws IonicException
     {
         Agent agent;
 
@@ -47,7 +47,7 @@ public class ISAgentPool {
             agent = new Agent();
             if (persistor == null)
             {
-                throw new SdkException(AgentErrorModuleConstants.ISAGENT_NO_DEVICE_PROFILE.value());
+                throw new IonicException(AgentErrorModuleConstants.ISAGENT_NO_DEVICE_PROFILE.value());
             }
             agent.initialize(persistor);
             agent.setMetadata(metadataMap);
@@ -61,7 +61,8 @@ public class ISAgentPool {
     /**
      * returnAgent() returns an Agent to the AgentPool
      * It is no longer to safe to reference the agent afterwards
-     * @param: Agent a
+     *
+     * @param a a {@link com.ionic.sdk.agent.Agent} object.
      */
     public void returnAgent(Agent a)
     {
@@ -83,7 +84,8 @@ public class ISAgentPool {
     /**
      * setPersistor() sets the persistor to use when making
      *  new agents and empties the AgentPool
-     *  @param: DeviceProfilePersistorBase persistor
+     *
+     * @param persistor a {@link com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorBase} object.
      */
     public void setPersistor(DeviceProfilePersistorBase persistor)
     {
@@ -94,7 +96,8 @@ public class ISAgentPool {
     /**
      * setMetadataMap() sets the MetadataMap to be
      * used when generating new Agents
-     * @param: MetadataMap map
+     * 
+     * @param map a {@link com.ionic.sdk.agent.data.MetadataMap} object.
      */
     static void setMetadataMap(MetadataMap map)
     {
@@ -103,7 +106,8 @@ public class ISAgentPool {
 
     /**
      * getIonicMetadataMap() gets Agent.MetaDataMap
-     * @return: MetadataMap
+     * 
+     * @return a {@link com.ionic.sdk.agent.data.MetadataMap} object.
      */
     static MetadataMap getMetadataMap()
     {

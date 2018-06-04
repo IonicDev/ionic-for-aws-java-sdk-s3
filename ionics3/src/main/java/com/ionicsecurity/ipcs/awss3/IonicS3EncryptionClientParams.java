@@ -1,5 +1,5 @@
 /*
- * (c) 2017 Ionic Security Inc.
+ * (c) 2017-2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
@@ -14,8 +14,12 @@ import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.CryptoConfiguration;
 import com.amazonaws.services.s3.model.EncryptionMaterialsProvider;
 
+/**
+ * IonicS3EncryptionClientParams class.
+ * 
+ * A faux implementation of AmazonS3EncryptionClientParams.
+ */
 public class IonicS3EncryptionClientParams
-// Faux implements AmazonS3EncryptionClientParams
 {
     EncryptionMaterialsProvider materialsProvider;
     CryptoConfiguration cryptoConfig;

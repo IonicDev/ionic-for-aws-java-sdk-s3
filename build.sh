@@ -2,8 +2,10 @@
 
 SKIPTEST=true
 
-mvn -Dmaven.test.skip=${SKIPTEST} package
-mvn -Dmaven.test.skip=${SKIPTEST} install
+pushd ionics3
+mvn -Dmaven.test.skip=${SKIPTEST} package install
+popd
 
-pushd awss3examples && mvn package appassembler:assemble
-
+pushd awss3examples
+mvn clean package appassembler:assemble
+popd

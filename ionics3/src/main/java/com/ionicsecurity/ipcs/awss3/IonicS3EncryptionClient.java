@@ -1,5 +1,5 @@
 /*
- * (c) 2017 Ionic Security Inc.
+ * (c) 2017-2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
@@ -27,6 +27,11 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 
+/**
+ * IonicS3EncryptionClient class.
+ * 
+ * A Ionic backed subclass of {@link com.amazonaws.services.s3.AmazonS3EncryptionClient}.
+ */
 public class IonicS3EncryptionClient extends AmazonS3EncryptionClient 
 implements AmazonS3Encryption{
 

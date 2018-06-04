@@ -1,5 +1,5 @@
 /*
- * (c) 2017 Ionic Security Inc.
+ * (c) 2017-2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
@@ -23,13 +23,16 @@ import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.agent.request.getkey.GetKeysResponse;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorBase;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
-import com.ionic.sdk.error.SdkException;
+import com.ionic.sdk.error.IonicException;
 
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 import com.amazonaws.services.s3.model.EncryptionMaterialsProvider;
 
 
+/**
+ * IonicEncryptionMaterialsProvider class.
+ */
 public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProvider {
     // String constants
     static final String KEYIDKEY = "ionic-key-id";
@@ -48,7 +51,7 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
     {
         try {
             AgentSdk.initialize(null);
-        } catch (SdkException e) {
+        } catch (IonicException e) {
             throw new AmazonS3Exception(e.getLocalizedMessage(), e);
         } 
     }
@@ -56,13 +59,14 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
     /**
      * IonicEncryptionMaterialsProvider() constructor for IonicEncryptionMaterialsProvider that
      * takes a persistor and set it on it's agentPool
-     * @param: DeviceProfilePersistorBase persistor
+     *
+     * @param persistor a {@link com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorBase} object.
      */
     public IonicEncryptionMaterialsProvider(DeviceProfilePersistorBase persistor)
     {
         try {
             AgentSdk.initialize(null);
-        } catch (SdkException e) {
+        } catch (IonicException e) {
             throw new AmazonS3Exception(e.getLocalizedMessage(), e);
         } 
         agentPool.setPersistor(persistor);
@@ -70,8 +74,9 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
 
     /**
      * standard() Create new instance of IonicEncryptionMaterialsProvider
-     * with the default Persistor.
-     * @return: IonicEncryptionMaterialsProvider
+     * with the default PlainText Persistor.
+     *
+     * @return a {@link com.ionicsecurity.ipcs.awss3.IonicEncryptionMaterialsProvider} object.
      */
     static public IonicEncryptionMaterialsProvider standard()
     {
@@ -80,13 +85,15 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
         String sProfilePath = System.getProperty("user.home") + "/.ionicsecurity/profiles.pt";
         try {
             ptPersistor.setFilePath(sProfilePath);
-        } catch (SdkException e) {
+        } catch (IonicException e) {
             throw new AmazonS3Exception(e.getLocalizedMessage(), e);
         }
         return new IonicEncryptionMaterialsProvider(ptPersistor);
     }
 
     /**
+     * {@inheritDoc}
+     *
      * refresh() no-op
      */
     @Override
@@ -94,8 +101,9 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
 
     /**
      * getEncryptionMaterials() produces EncryptionMaterials by
-     * creating a new encryption key via IDC    
-     * @return: EncryptionMaterials
+     * creating a new encryption key via IDC
+     *
+     * @return a {@link com.amazonaws.services.s3.model.EncryptionMaterials} object.
      */
     public EncryptionMaterials getEncryptionMaterials()
     {
@@ -103,12 +111,12 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
     }
 
     /**
+     * {@inheritDoc}
+     *
      * getEncryptionMaterials() produces EncryptionMaterials by either
      * creating a new encryption key via IDC if no Ionic_Key_ID key is
      * present in materialsDescription or by attempting to retrieve an
-     * existing key from IDC with its KeyId    
-     * @param: Map<String, String> materialsDescription
-     * @return: EncryptionMaterials
+     * existing key from IDC with its KeyId
      */
     @Override
     public EncryptionMaterials getEncryptionMaterials(Map<String, String> materialsDescription)
@@ -145,13 +153,13 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
         Agent agent;
         try {
             agent = agentPool.getAgent();
-        } catch (SdkException e) {
+        } catch (IonicException e) {
             throw new AmazonS3Exception(e.getLocalizedMessage(), e);
         }
         CreateKeysResponse.Key ionicKey = null;
         try {
             ionicKey = agent.createKey(kam).getKeys().get(0);
-        } catch (SdkException e) {
+        } catch (IonicException e) {
             throw new AmazonS3Exception(e.getLocalizedMessage(), e);
         }
         agentPool.returnAgent(agent);        
@@ -168,13 +176,13 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
         Agent agent;
         try {
             agent = agentPool.getAgent();
-        } catch (SdkException e) {
+        } catch (IonicException e) {
             throw new AmazonS3Exception(e.getLocalizedMessage(), e);
         }
         GetKeysResponse.Key ionicKey;
         try {
             ionicKey = agent.getKey(keyID).getKeys().get(0);
-        } catch (SdkException e) {
+        } catch (IonicException e) {
             throw new AmazonS3Exception(e.getLocalizedMessage(), e);
         }
         agentPool.returnAgent(agent);
@@ -198,19 +206,21 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
 
     /**
      * isEnabledMetadataCapture() returns enabledMetadataCapture
-     * @return: boolean
+     *
+     * @return a boolean.
      */
     public boolean isEnabledMetadataCapture() {
         return enabledMetadataCapture;
     }
 
     /**
-     * setEnabledMetadataCapture() sets enabledMetadataCapture, 
+     * setEnabledMetadataCapture() sets enabledMetadataCapture,
      * while true S3 requests to store objects with client side
      * Encryption will have their userMetadata parsed and passed
      * as ionic attributes when content encryption keys are
      * generated
-     * @param: boolean enabledMetadataCapture
+     *
+     * @param enabledMetadataCapture a boolean.
      */
     public void setEnabledMetadataCapture(boolean enabledMetadataCapture) {
         this.enabledMetadataCapture = enabledMetadataCapture;
@@ -218,26 +228,30 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
 
     /**
      * isEnabledMetadataReturn() returns isEnabledMetadataReturn
-     * @return: boolean
-     */ boolean isEnabledMetadataReturn() {
+     * 
+     * @return a boolean.
+     */ 
+    boolean isEnabledMetadataReturn() {
          return enabledMetadataReturn;
      }
 
      /**
-      * setEnabledMetadataReturn() sets enabledMetadataReturn, 
+      * setEnabledMetadataReturn() sets enabledMetadataReturn,
       * while true ionic attributes associated with the content encryption
       * key will be added to the encryption materials description associated
       * with the local instance of the s3object
-      * @param: boolean enabledMetadataReturn
+      *
+      * @param enabledMetadataReturn a boolean.
       */
      public void setEnabledMetadataReturn(boolean enabledMetadataReturn) {
          this.enabledMetadataReturn = enabledMetadataReturn;
      }
 
      /**
-      * setDefaultAttributes() sets the default Attributes to 
+      * setDefaultAttributes() sets the default Attributes to
       * be applied to all Agent.keyCreate() requests
-      * @param: KeyAttributesMap defaultAttributes
+      *
+      * @param defaultAttributes a {@link com.ionic.sdk.agent.key.KeyAttributesMap} object.
       */
      public static void setDefaultAttributes(KeyAttributesMap defaultAttributes)
      {
@@ -246,7 +260,8 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
 
      /**
       * getDefaultAttributes() gets defaultAttributes
-      * @return: KeyAttributesMap 
+      *
+      * @return a {@link com.ionic.sdk.agent.key.KeyAttributesMap} object.
       */
      public static KeyAttributesMap getDefaultAttributes()
      {
@@ -255,7 +270,8 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
 
      /**
       * setIonicMetadataMap() sets the MetadataMap for IDC interactions
-      * @param: MetadataMap map
+      *
+      * @param map a {@link com.ionic.sdk.agent.data.MetadataMap} object.
       */
      public static void setIonicMetadataMap(MetadataMap map)
      {
@@ -264,7 +280,8 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
 
      /**
       * getIonicMetadataMap() gets the MetadataMap used for IDC interactions
-      * @return: MetadataMap
+      *
+      * @return a {@link com.ionic.sdk.agent.data.MetadataMap} object.
       */
      public static MetadataMap getIonicMetadataMap()
      {
@@ -274,7 +291,8 @@ public class IonicEncryptionMaterialsProvider implements EncryptionMaterialsProv
      /**
       * setPersistor() sets the Persistor with which to
       * create Agents in the AgentPool
-      * @param: DeviceProfilePersistorBase persistor
+      *
+      * @param persistor a {@link com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorBase} object.
       */
      public void setPersistor(DeviceProfilePersistorBase persistor)
      {

@@ -1,5 +1,5 @@
 /*
- * (c) 2017 Ionic Security Inc.
+ * (c) 2017-2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
@@ -10,7 +10,6 @@ import java.io.File;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Encryption;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.transfer.Download;
 import com.amazonaws.services.s3.transfer.TransferManager;
@@ -20,7 +19,7 @@ import com.ionicsecurity.ipcs.awss3.IonicEncryptionMaterialsProvider;
 import com.ionicsecurity.ipcs.awss3.IonicS3EncryptionClientBuilder;
 import com.ionic.sdk.agent.data.MetadataMap;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
-import com.ionic.sdk.error.SdkException;
+import com.ionic.sdk.error.IonicException;
 
 
 public class S3TransferManagerSample {
@@ -46,8 +45,9 @@ public class S3TransferManagerSample {
         String sProfilePath = System.getProperty("user.home") + "/.ionicsecurity/profiles.pt";
         try {
             ptPersistor.setFilePath(sProfilePath);
-        } catch (SdkException e) {
-            throw new AmazonS3Exception(e.getLocalizedMessage(), e);
+        } catch (IonicException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
         }
         iemp.setPersistor(ptPersistor);
 

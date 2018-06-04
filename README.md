@@ -1,17 +1,17 @@
 
 ## README.md for Ionic Developers
 
-### Install Ionic SDK JAR 
+### Install Ionic SDK JAR
 
-1. [Download](https://dev-dashboard.ionic.com/#/downloads?tenant=5640bb430ea2684423e0655c) the "Java 2.0 SDK" 
+1. [Download](https://dev-dashboard.ionic.com/#/downloads?tenant=5640bb430ea2684423e0655c) the "Java 2.1.0 SDK"
 2. Extract SDK zip
 3. Add Ionic SDK JAR to Maven Local Repository with the appropriate package information:
 
 ~~~bash
-mvn install:install-file -Dfile=ionic-sdk-2.0.0.jar  -DpomFile=pom.xml
+mvn install:install-file -Dfile=ionic-sdk-2.1.0.jar  -DpomFile=pom.xml
 ~~~
 
-> NOTE: ionic-sdk-2.0.0.jar is only compatible with Java 8
+> NOTE: ionic-sdk-2.1.0.jar is only compatible with Java 7 & 8
 
 > NOTE: Because Ionic uses strong 256-bit keys for encryption, the standard cryptography library built into Java will
 > require that you have installed the [Unlimited Strength Java Cryptography Extension](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html).
@@ -32,18 +32,21 @@ mvn install:install-file -Dfile=ionic-sdk-2.0.0.jar  -DpomFile=pom.xml
 
 
 ### Setup AWS Credentials
-#### Create IAM User 
+#### Create IAM User
 The IAM user will be used to put and get objects from the AWS Bucket
-* Open the IAM console.
-* From the navigation menu, click Users.
-* Select your IAM user name.
-* Click User Actions, and then click Manage Access Keys.
-* Click Create Access Key.
-* Your keys will look something like this: 
-* Access key ID example: AKIAIOSFODNN7EXAMPLE 
+* Open the [IAM console](https://console.aws.amazon.com/console/home).
+* From the navigation menu, select your username and select My Security Credentials
+* Select the Access keys tab
+* Click the Create New Access Key button to generate Access key ID and Secret access key
+* Access key ID example: AKIAIOSFODNN7EXAMPLE
 * Secret access key example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
-#### Verify Location of AWS Credentials
+## Add AWS Credentials and Default Region to your machine
+
+Either add your credentials and default region to your environment or set them in the `.aws` directory in your HOME.
+
+#### Adding the keys and region to your .aws directory
+
 Create .aws/ folder and credentials file if needed
 * `~/.aws/credentials` on Linux, macOS, or Unix
 * `C:\Users\USERNAME\.aws\credentials` on Windows
@@ -54,41 +57,35 @@ In the credentials file, enter the following:
 aws_access_key_id = your_access_key_id
 aws_secret_access_key = your_secret_access_key
 ```
+Create .aws/config and enter the following replacing `your_default_region` with the region you wish to use:
 
-Replacing `your_access_key_id` and `your_secret_access_key` with the keys created for the IAM user.
+* [AWS REGIONS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html)
 
-Then add the keys to your PATH:
+```bash
+[default]
+region=your-default-region
+```
+
+#### Adding the keys and region to your env
+
+Replace `your_access_key_id` and `your_secret_access_key` with the keys created for the IAM user and `your_default_region` with the region you wish to use for IPCS S3.
+
+* [AWS REGIONS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html)
 
  Mac:
   * `export AWS_ACCESS_KEY_ID=your_access_key_id`
   * `export AWS_SECRET_ACCESS_KEY=your_secret_access_key`
-  * `export AWS_DEFAULT_REGION=your_region`
+  * `export AWS_DEFAULT_REGION=your_default_region`
 
  Windows:
   * `set AWS_ACCESS_KEY_ID=your_access_key_id`
   * `set AWS_SECRET_ACCESS_KEY=your_secret_access_key`
-  * `set AWS_DEFAULT_REGION=your_region`
+  * `set AWS_DEFAULT_REGION=your_default_region`
 
-
-#### Add default AWS region
-Create .aws/config and enter the following:
-```bash
-[default]
-region=your_region
-```
 
 ### Build the Project
-#### Establish IONIC_SDK_PATH
-Note that you will need to set the environment variable $IONIC_SDK_PATH to point wherever you extracted the Ionic SDK. This directory should include the Lib and Include directories.
-* Example: `export IONIC_SDK_PATH=/Users/jdoe/Desktop/{Folder containing ISAgentSDKJava}/`
-#### Install Ionic SDK into Maven Local Cache
-mvn install:install-file -Dfile=ionic-sdk-2.0.0.jar -DpomFile=pom.xml
-#### Install Java Cryptography Extension
-If you don't already have this extension: [JCE Unlimited Strength Jurisdiction Policy Files 8](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html), download it and store it in `${java.home}/jre/lib/security/`.
-#### Load Ionic Security Credentials
-Ensure that your Ionic device credentials can be located at `${user.home}/.ionicsecurity/profile.pt`.
-#### Build
-`./build.sh`
+
+`./build.sh` or `build.bat`
 
 ### Usage
 
@@ -96,14 +93,17 @@ Ensure that your Ionic device credentials can be located at `${user.home}/.ionic
 
 After the build, a fat JAR of the sample app is produced at `awss3examples/target/S3SampleApp.jar`.
 
+Ensure that your Ionic device credentials can be located at `${user.home}/.ionicsecurity/profiles.pt`.
+
 The user can run the program with either "put" or "get" commands with usage as follows:
-* `./run.sh put <bucketname> <objectKey> <string>`
-* `./run.sh put <bucketname> <objectKey> <file>`
-* `./run.sh get <bucketname> <objectKey>`
+* `./run.sh  putString <bucketName> <objectKey> <objectContent> [<metadata>]`
+* `./run.sh  putFile <bucketName> <objectKey> <filePath> [<metadata>]`
+* `./run.sh  putMultipart <bucketName> <objectKey> <file> <partsize_mb> [<metadata>]`
+* `./run.sh  getFile [-m] <bucketName> <objectKey> <destinationPath>`
+* `./run.sh  getString [-m] <bucketName> <objectKey>`
 
 #### Using the Library
 
 Using the library as a developer is documented in the `docs/content/` directories.
-The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.6.0.jar`.
+The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.7.0.jar`.
 This JAR is thin, and needs the Ionic SDK and the AWS SDKs available during builds that use it.
-

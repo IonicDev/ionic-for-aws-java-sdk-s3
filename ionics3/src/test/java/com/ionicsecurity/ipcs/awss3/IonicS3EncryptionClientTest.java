@@ -1,5 +1,5 @@
 /*
- * (c) 2017 Ionic Security Inc.
+ * (c) 2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
@@ -50,7 +50,7 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 
 import com.ionic.sdk.agent.AgentSdk;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
-import com.ionic.sdk.error.SdkException;
+import com.ionic.sdk.error.IonicException;
 
 import org.junit.Test;
 import org.junit.runners.Parameterized;
@@ -72,7 +72,7 @@ public class IonicS3EncryptionClientTest {
     }
 
     @Parameters
-    public static List<IonicS3EncryptionClient> getEncryptionClients() throws SdkException {
+    public static List<IonicS3EncryptionClient> getEncryptionClients() throws IonicException {
         AgentSdk.initialize(null);
         IonicS3EncryptionClient isec;
 
@@ -138,6 +138,7 @@ public class IonicS3EncryptionClientTest {
         FileInputStream originalStream = new FileInputStream(uploadFile);
 
         assertTrue(IOUtils.contentEquals(content, originalStream));
+        originalStream.close();
     }
 
     @Test

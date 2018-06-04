@@ -1,5 +1,5 @@
 /*
- * (c) 2017 Ionic Security Inc.
+ * (c) 2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
@@ -14,7 +14,6 @@ import java.util.Map;
 
 import javax.crypto.spec.SecretKeySpec;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 
 import com.ionic.sdk.agent.Agent;
@@ -23,7 +22,7 @@ import com.ionic.sdk.agent.key.KeyAttributesMap;
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.agent.request.getkey.GetKeysResponse;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
-import com.ionic.sdk.error.SdkException;
+import com.ionic.sdk.error.IonicException;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -34,7 +33,7 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
     IonicEncryptionMaterialsProvider iemp;
     DeviceProfilePersistorPlainText ptPersistor;
 
-    public IonicEncryptionMaterialsProviderTest(String testName) throws SdkException {
+    public IonicEncryptionMaterialsProviderTest(String testName) throws IonicException {
         super(testName);
         setUp();
     }
@@ -43,7 +42,7 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
         return new TestSuite(IonicEncryptionMaterialsProviderTest.class);
     }
 
-    public void setUp() throws SdkException {
+    public void setUp() throws IonicException {
         AgentSdk.initialize(null);
         ptPersistor = new DeviceProfilePersistorPlainText();
         String sProfilePath = System.getProperty("user.home") + "/.ionicsecurity/profiles.pt";
@@ -51,7 +50,7 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
         iemp = new IonicEncryptionMaterialsProvider(ptPersistor);
     }
 
-    public void testGetEncryptionMaterials() throws SdkException {
+    public void testGetEncryptionMaterials() throws IonicException {
         EncryptionMaterials encMat = iemp.getEncryptionMaterials(null);
         assertTrue(encMat instanceof EncryptionMaterials);
 
@@ -65,7 +64,7 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
         assertTrue(IonicKey != null);
     }
 
-    public void testGetEncryptionMaterialsWithDesc() throws SdkException {
+    public void testGetEncryptionMaterialsWithDesc() throws IonicException {
         Map<String, String> desc = new HashMap<String, String>();
         Agent agent = new Agent();
         agent.initialize(ptPersistor);
@@ -87,7 +86,7 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
         assertTrue(encMat.getSymmetricKey().equals(awsKey));
     }
 
-    public void testSetandGetDefaultAttributes() throws SdkException {
+    public void testSetandGetDefaultAttributes() throws IonicException {
         KeyAttributesMap kam = new KeyAttributesMap();
         ArrayList<String> collection = new ArrayList<String>();
         collection.add("confidential");

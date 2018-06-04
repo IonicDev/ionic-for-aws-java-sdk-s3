@@ -1,3 +1,9 @@
+/*
+ * (c) 2017-2018 Ionic Security Inc.
+ * By using this code, I agree to the LICENSE included, as well as the
+ * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
+ */
+
 package com.ionicsecurity.ipcs.awss3;
 
 import com.ionicsecurity.ipcs.awss3.IonicEncryptionMaterialsProvider;
@@ -9,6 +15,12 @@ import com.amazonaws.services.s3.AmazonS3Encryption;
 import com.amazonaws.services.s3.model.CryptoConfiguration;
 import com.amazonaws.services.s3.model.EncryptionMaterialsProvider;
 
+/**
+ * IonicS3EncryptionClientBuilder class.
+ *
+ * A factory class for building instances of {@link com.ionicsecurity.ipcs.awss3.IonicS3EncryptionClient}.
+ * Mirrors {@link com.amazonaws.services.s3.AmazonS3EncryptionClientBuilder}
+ */
 public class IonicS3EncryptionClientBuilder extends AmazonS3Builder<IonicS3EncryptionClientBuilder, AmazonS3Encryption> {
     private EncryptionMaterialsProvider encryptionMaterials;
     private CryptoConfiguration cryptoConfig = new CryptoConfiguration();
@@ -65,9 +77,9 @@ public class IonicS3EncryptionClientBuilder extends AmazonS3Builder<IonicS3Encry
     }
 
     /**
-     * Construct a synchronous implementation of AmazonS3Encryption using the current builder configuration.
+     * {@inheritDoc}
      *
-     * @return Fully configured implementation of AmazonS3Encryption.
+     * @return a {@link com.ionicsecurity.ipcs.awss3.IonicS3EncryptionClient} object.
      */
     @Override
     protected AmazonS3Encryption build(AwsSyncClientParams clientParams) {
