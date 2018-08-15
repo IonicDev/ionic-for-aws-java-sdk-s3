@@ -59,7 +59,7 @@
 		<dependency>
 			<groupId>com.ionicsecurity.ipcs.awss3</groupId>
 			<artifactId>ionics3</artifactId>
-			<version>0.7.0</version>
+			<version>0.7.1</version>
 		</dependency>
 	</dependencies>
 </project>

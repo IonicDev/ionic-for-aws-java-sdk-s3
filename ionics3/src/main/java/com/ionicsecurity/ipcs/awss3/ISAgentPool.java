@@ -47,7 +47,7 @@ public class ISAgentPool {
             agent = new Agent();
             if (persistor == null)
             {
-                throw new IonicException(AgentErrorModuleConstants.ISAGENT_NO_DEVICE_PROFILE.value());
+                throw new IonicException(AgentErrorModuleConstants.ISAGENT_NO_DEVICE_PROFILE);
             }
             agent.initialize(persistor);
             agent.setMetadata(metadataMap);
