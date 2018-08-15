@@ -1,17 +1,17 @@
 
-## README.md for Ionic Developers
+## Setup Instructions for Developers
 
 ### Install Ionic SDK JAR
 
-1. [Download](https://dev-dashboard.ionic.com/#/downloads?tenant=5640bb430ea2684423e0655c) the "Java 2.1.0 SDK"
+1. [Download](https://dev-dashboard.ionic.com/#/downloads?tenant=5640bb430ea2684423e0655c) the "Java 2.2.1 SDK"
 2. Extract SDK zip
 3. Add Ionic SDK JAR to Maven Local Repository with the appropriate package information:
 
 ~~~bash
-mvn install:install-file -Dfile=ionic-sdk-2.1.0.jar  -DpomFile=pom.xml
+mvn install:install-file -Dfile=ionic-sdk-2.2.1.jar  -DpomFile=pom.xml
 ~~~
 
-> NOTE: ionic-sdk-2.1.0.jar is only compatible with Java 7 & 8
+> NOTE: ionic-sdk-2.2.1.jar is only compatible with Java 7, 8 & 9
 
 > NOTE: Because Ionic uses strong 256-bit keys for encryption, the standard cryptography library built into Java will
 > require that you have installed the [Unlimited Strength Java Cryptography Extension](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html).
@@ -105,5 +105,5 @@ The user can run the program with either "put" or "get" commands with usage as f
 #### Using the Library
 
 Using the library as a developer is documented in the `docs/content/` directories.
-The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.7.0.jar`.
+The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.7.1.jar`.
 This JAR is thin, and needs the Ionic SDK and the AWS SDKs available during builds that use it.
