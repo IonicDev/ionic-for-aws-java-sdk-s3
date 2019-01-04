@@ -1,1 +1,1 @@
-awss3examples/target/appassembler/bin/S3SampleApp.bat %*
+java -jar target/IonicS3SampleApp.jar %*

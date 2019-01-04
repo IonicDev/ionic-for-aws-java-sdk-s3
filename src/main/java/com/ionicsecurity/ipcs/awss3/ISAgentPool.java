@@ -1,7 +1,7 @@
 /*
  * (c) 2017-2018 Ionic Security Inc.
  * By using this code, I agree to the LICENSE included, as well as the
- * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
+ * Terms & Conditions (https://dev.ionic.com/use) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
  */
 
 package com.ionicsecurity.ipcs.awss3;
@@ -34,7 +34,9 @@ public class ISAgentPool {
      * getAgent() acquires an Agent from the AgentPool
      *
      * @return a {@link com.ionic.sdk.agent.Agent} object.
-     * @throws com.ionic.sdk.error.IonicException if any.
+     * @throws com.ionic.sdk.error.IonicException if the
+     * {@link com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorBase Persistor}
+     * is unset or does not contain an active profile.
      */
     public Agent getAgent() throws IonicException
     {
@@ -50,6 +52,10 @@ public class ISAgentPool {
                 throw new IonicException(AgentErrorModuleConstants.ISAGENT_NO_DEVICE_PROFILE);
             }
             agent.initialize(persistor);
+            // Protect against npe when no active profile set
+            if (agent.hasActiveProfile() == false) {
+            	throw new IonicException(AgentErrorModuleConstants.ISAGENT_NO_DEVICE_PROFILE);
+            }
             agent.setMetadata(metadataMap);
             return agent;
         }
@@ -96,7 +102,7 @@ public class ISAgentPool {
     /**
      * setMetadataMap() sets the MetadataMap to be
      * used when generating new Agents
-     * 
+     *
      * @param map a {@link com.ionic.sdk.agent.data.MetadataMap} object.
      */
     static void setMetadataMap(MetadataMap map)
@@ -106,7 +112,7 @@ public class ISAgentPool {
 
     /**
      * getIonicMetadataMap() gets Agent.MetaDataMap
-     * 
+     *
      * @return a {@link com.ionic.sdk.agent.data.MetadataMap} object.
      */
     static MetadataMap getMetadataMap()

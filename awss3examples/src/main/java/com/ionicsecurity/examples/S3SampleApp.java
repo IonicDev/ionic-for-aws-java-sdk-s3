@@ -1,18 +1,18 @@
 /*
- * S3SampleApp.java
- * The purpose of this project is to store an object in AWS S3 with client-side Ionic protection.
- * This code is an example of what clients would use programmatically to incorporate the Ionic platform
- * into their S3 use cases.
- * 
- * (c) 2017-2018 Ionic Security Inc.
- * By using this code, I agree to the LICENSE included, as well as the
- * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy (https://www.ionic.com/privacy-notice/).
- * Derived in part from AWS Sample S3 Project, S3Sample.java.
+ * S3SampleApp.java The purpose of this project is to store an object in AWS S3 with client-side
+ * Ionic protection. This code is an example of what clients would use programmatically to
+ * incorporate the Ionic platform into their S3 use cases.
+ *
+ * (c) 2017-2018 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as
+ * the Terms & Conditions (https://dev.ionic.com/use) and the Privacy Policy
+ * (https://www.ionic.com/privacy-notice/). Derived in part from AWS Sample S3 Project,
+ * S3Sample.java.
  */
 
 package com.ionicsecurity.examples;
 
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,14 +23,17 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.ionic.sdk.agent.data.MetadataMap;
+import com.ionic.sdk.agent.key.KeyAttributesMap;
+import com.ionic.sdk.agent.request.createkey.CreateKeysRequest;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
 import com.ionic.sdk.error.IonicException;
 import com.ionicsecurity.ipcs.awss3.IonicEncryptionMaterialsProvider;
+import com.ionicsecurity.ipcs.awss3.IonicS3EncryptionClient;
 import com.ionicsecurity.ipcs.awss3.IonicS3EncryptionClientBuilder;
 import com.ionicsecurity.ipcs.awss3.Version;
-
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3Encryption;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
@@ -45,358 +48,482 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.util.IOUtils;
 import com.amazonaws.util.StringUtils;
 
-public class S3SampleApp 
-{
+public class S3SampleApp {
 
-    enum Action {
-        GETSTRING ("getString"),
-        GETFILE ("getFile"),
-        PUTSTRING("putString"),
-        PUTFILE("putFile"),
-        PUTMULTIPART ("putMultipart"),
-        VERSION ("version"),
-        ;
-        
-        final String str;
-        
-        Action (String name)
-        {
-            this.str = name;
+  enum Action {
+    GETSTRING("getString"),
+    GETFILE("getFile"),
+    PUTSTRING("putString"),
+    PUTFILE("putFile"),
+    PUTMULTIPART("putMultipart"),
+    VERSION("version"),;
+
+    final String str;
+
+    Action(String name) {
+      this.str = name;
+    }
+  }
+
+  public static final int MAX_AWS_SDK_CHUNKS = 10000; // AWS S3 limits multipart uploads to 10000 parts
+  public static final boolean useSandbox = true;      // if true limit file paths to within user's home dir
+  private static final String HOME = System.getProperty("user.home");
+
+
+  static void putString(String bucketName, String objectKey, String objectContent,
+      IonicS3EncryptionClient s3, KeyAttributesMap attributes) {
+    System.out.println("Putting object as string in specified S3 bucket");
+    if (attributes != null) {
+      s3.putObject(bucketName, objectKey, objectContent, new CreateKeysRequest.Key("", 1, attributes));
+    } else {
+      s3.putObject(bucketName, objectKey, objectContent);
+    }
+  }
+
+  static void putFile(String bucketName, String objectKey, String filePath, IonicS3EncryptionClient s3,
+      KeyAttributesMap attributes) {
+
+    String srcFilePathStr = getCanonicalPathString(filePath);
+
+    if ((srcFilePathStr == null) || (srcFilePathStr.isEmpty())) {
+      System.err.println("No filepath specified");
+      return;
+    }
+
+    // Sandbox within user home
+    if ((useSandbox) && (!srcFilePathStr.startsWith(HOME))) {
+      System.err.println("Filepath outside of user home");
+      return;
+    }
+
+    Path srcFilePath = Paths.get(srcFilePathStr);
+
+    if (!Files.exists(srcFilePath)) {
+      System.err.println("File " + srcFilePathStr + " does not exist.");
+      return;
+    }
+    if (!Files.isRegularFile(srcFilePath)) {
+      System.err.println("File " + srcFilePathStr + " not a file.");
+      return;
+    }
+
+    System.out.println("Putting object file in S3 bucket ");
+    PutObjectRequest req = new PutObjectRequest(bucketName, objectKey, srcFilePath.toFile());
+    if (attributes != null) {
+        s3.putObject(req, new CreateKeysRequest.Key("", 1, attributes));
+    } else {
+        s3.putObject(req);
+    }
+  }
+
+  static void getString(String bucketName, String objectKey, AmazonS3Encryption s3) {
+    System.out.println("Getting object as string from specified S3 bucket");
+    S3Object obj = s3.getObject(bucketName, objectKey);
+    try {
+      System.out.println(IOUtils.toString(obj.getObjectContent()));
+    } catch (IOException e) {
+      System.err.println("IOException reading content from S3 object");
+    }
+  }
+
+  static void getFile(String bucketName, String objectKey, String destination,
+      AmazonS3Encryption s3) {
+    String destFilePathStr = getCanonicalPathString(destination);
+
+    if ((destFilePathStr == null) || (destFilePathStr.isEmpty())) {
+      System.err.println("No filepath specified");
+      return;
+    }
+
+    Path destFilePath = null;
+
+    // Sandbox within user home
+    if ((useSandbox) && (!destFilePathStr.startsWith(HOME))) {
+      System.err.println("Filepath outside of user home");
+      return;
+    }
+
+    destFilePath = Paths.get(destFilePathStr);
+
+    // Check if file already exists but is not a file (e.g. don't try to overwrite a directory)
+    if ((Files.exists(destFilePath)) && (!Files.isRegularFile(destFilePath))) {
+      System.err.println("File " + destFilePathStr + " not a file");
+      return;
+    }
+
+    try {
+      // Safe to delete existing file
+      Files.deleteIfExists(destFilePath);
+    } catch (IOException e) {
+      System.err.println("IOException delete destination: " + destFilePathStr);
+      return;
+    }
+
+    System.out.println("Getting object from S3 bucket");
+    S3Object obj = s3.getObject(bucketName, objectKey);
+    try {
+      Files.copy(obj.getObjectContent(), destFilePath);
+    } catch (IOException e) {
+      System.err.println("IOException with destination: " + destFilePathStr);
+      return;
+    }
+  }
+
+  static void putMultipart(String bucketName, String objectKey, String filePath, int partSize,
+      IonicS3EncryptionClient s3, KeyAttributesMap attributes) {
+
+    long partSizeBytes = ((long) partSize * 1024 * 1024);
+
+    if (partSizeBytes < (5L * 1024 * 1024)) {
+      System.out.println("Part size must be 5(mb) or greater");
+      return;
+    }
+
+    String srcFilePathStr = getCanonicalPathString(filePath);
+
+    if ((srcFilePathStr == null) || (srcFilePathStr.isEmpty())) {
+      System.err.println("No filepath specified");
+      return;
+    }
+
+    // Sandbox within user home
+    if ((useSandbox) && (!srcFilePathStr.startsWith(HOME))) {
+      System.out.println("Filepath outside of user home");
+      return;
+    }
+
+    Path srcFilePath = Paths.get(srcFilePathStr);
+
+    if (!Files.exists(srcFilePath)) {
+      System.err.println("Source file does not exist");
+      return;
+    }
+    if (!Files.isRegularFile(srcFilePath)) {
+      System.err.println("Source file is not a file");
+      return;
+    }
+
+    File file = srcFilePath.toFile();
+
+    List<PartETag> partETags = new ArrayList<PartETag>();
+
+    long contentLength = file.length();
+    if (partSizeBytes <= 0) {
+      System.out.println("Invalid partition size");
+      return;
+    }
+    long totalChunks = contentLength / partSizeBytes;
+
+    if (contentLength % partSizeBytes != 0) {
+      totalChunks++;
+    }
+
+    if (totalChunks == 0L) {
+      System.out.println("No Multipart upload of an empty file");
+      return;
+    }
+    if (totalChunks == 1L) {
+      putFile(bucketName, objectKey, srcFilePathStr, s3, attributes);
+      return;
+    }
+    // Note: Number of parts for Amazon S3 must be between 1 and 10000
+    // https://docs.aws.amazon.com/AmazonS3/latest/API/mpUploadUploadPart.html
+    if (totalChunks > (long) MAX_AWS_SDK_CHUNKS) {
+      System.out.println(
+          "File must be limited to " + MAX_AWS_SDK_CHUNKS + " partitions for multipart upload");
+      return;
+    }
+    int totalChunksInt = (int) totalChunks;
+
+    System.out.println("Initating Multipart Upload");
+    System.out.println("With chunk size of " + partSizeBytes + "bytes");
+    System.out.println(totalChunksInt + " parts to upload");
+
+    // Step 1: Initiate multipart upload request
+    InitiateMultipartUploadRequest req =
+        new InitiateMultipartUploadRequest(bucketName, objectKey, null);
+    InitiateMultipartUploadResult res;
+    if (attributes != null) {
+        res = s3.initiateMultipartUpload(req, new CreateKeysRequest.Key("", 1, attributes));
+    } else {
+        res = s3.initiateMultipartUpload(req);
+    }
+    try {
+      // Step 2: Upload parts.
+      long filePosition = 0L;
+      for (int i = 1; i <= Math.min(MAX_AWS_SDK_CHUNKS, totalChunksInt); i++) {
+        if (filePosition >= contentLength) {
+          break;
         }
+        // Last part can be less than 5 MB. Adjust part size.
+        partSizeBytes = Math.min(partSizeBytes, (contentLength - filePosition));
+
+        boolean isLast = i == totalChunksInt;
+
+        // Create request to upload a part.
+        UploadPartRequest uploadRequest =
+            new UploadPartRequest().withBucketName(bucketName).withKey(objectKey)
+                .withUploadId(res.getUploadId()).withPartNumber(i).withFileOffset(filePosition)
+                .withFile(file).withPartSize(partSizeBytes).withLastPart(isLast);
+
+        // Upload part and add response to our list.
+        System.out.println("Uploading Part #" + i + " of " + totalChunksInt);
+        partETags.add(s3.uploadPart(uploadRequest).getPartETag());
+        if (isLast) {
+          System.out.println("Uploaded last part");
+        }
+
+        filePosition += partSizeBytes;
+      }
+
+      // Step 3: Complete.
+      CompleteMultipartUploadRequest compRequest =
+          new CompleteMultipartUploadRequest(bucketName, objectKey, res.getUploadId(), partETags);
+
+      s3.completeMultipartUpload(compRequest);
+      System.out.println("Upload Complete");
+    } catch (Exception e) {
+      System.err.println("Exception Occured: " + e.getMessage());
+      System.out.println("Aborting Upload");
+      s3.abortMultipartUpload(
+          new AbortMultipartUploadRequest(bucketName, objectKey, res.getUploadId()));
     }
-    
-    static void putString(String bucketName, String objectKey, String objectContent,
-            AmazonS3Encryption s3, ObjectMetadata s3ObjectMetadata)
-    {
-        System.out.println("Putting object " + objectKey + " in bucket " + bucketName);
-        // Treat as a string
-        byte[] contentBytes = objectContent.getBytes(StringUtils.UTF8);
-        InputStream is = new ByteArrayInputStream(contentBytes);
-        s3ObjectMetadata.setContentLength(contentBytes.length);
-        s3.putObject(bucketName, objectKey, is, s3ObjectMetadata);
+  }
+
+  static IonicS3EncryptionClient setUp()
+      throws IOException, InvalidPathException, IllegalArgumentException {
+    // Set up IonicEncryptionMaterialsProvider and provide to constructor of IonicS3EncryptionClient
+    IonicEncryptionMaterialsProvider iemp = new IonicEncryptionMaterialsProvider();
+    IonicEncryptionMaterialsProvider.setIonicMetadataMap(S3SampleApp.getMetadataMap());
+
+    // Load a plain-text device profile (SEP) from disk
+    DeviceProfilePersistorPlainText ptPersistor = new DeviceProfilePersistorPlainText();
+
+    String sProfilePath =
+        Paths.get(HOME + "/.ionicsecurity/profiles.pt").toFile().getCanonicalPath();
+    try {
+      ptPersistor.setFilePath(sProfilePath);
+    } catch (IonicException e) {
+      System.err.println("Error: Can't set the profile persistor path");
+      return null;
     }
-    
-    static void putFile(String bucketName, String objectKey, String filePath, AmazonS3Encryption s3,
-            ObjectMetadata s3ObjectMetadata) {
-        File file = new File(filePath);
-        if (file.exists() && file.isFile()) {
-            System.out.println("Putting object " + objectKey + " in bucket " + bucketName);
-            PutObjectRequest req = new PutObjectRequest(bucketName, objectKey, file);
-            req.setMetadata(s3ObjectMetadata);
-            s3.putObject(req);
+    iemp.setPersistor(ptPersistor);
+
+    return (IonicS3EncryptionClient)IonicS3EncryptionClientBuilder.standard().withEncryptionMaterials(iemp).build();
+  }
+
+  public static void main(String[] args)
+      throws IOException, InvalidPathException, IllegalArgumentException {
+
+    Action action = null;
+    boolean mFlag = false;
+    int actionArg = 0;
+    int mFlagArg = 1;
+    int bucketNameArg = 1;
+    int objectKeyArg = 2;
+    int objectContentArg = 3;
+    int filePathArg = 3;
+    int attributesArg = 4;
+    int partSizeArg = 4;
+
+    // Command Line Processing
+    if (args.length > actionArg) {
+      // Determine Action (e.g. getString)
+      for (Action a : Action.values()) {
+        if (a.str.equals(args[actionArg])) {
+          action = a;
+          break;
+        }
+      }
+    } else {
+      usage();
+      return;
+    }
+
+    String bucketName = null;
+    String objectKey = null;
+    String objectContent = null;
+    String filePath = null;
+    KeyAttributesMap attributes = null;
+
+    IonicS3EncryptionClient s3;
+
+    switch (action) {
+      case PUTFILE:
+        if (args.length > filePathArg) {
+          bucketName = new String(args[bucketNameArg].getBytes(StringUtils.UTF8));
+
+          objectKey = new String(args[objectKeyArg].getBytes(StringUtils.UTF8));
+
+          filePath = new String(args[filePathArg].getBytes(StringUtils.UTF8));
+
+          // Optional: parse any attributes
+          if (args.length > attributesArg) {
+            attributes = parseAttributes(args[attributesArg]);
+            if (attributes == null) {
+              return;
+            }
+          }
+
+          s3 = setUp();
+          if (s3 != null) {
+            putFile(bucketName, objectKey, filePath, s3, attributes);
+          }
         } else {
-            System.err.println("File " + filePath + " does not exist.");
-            System.exit(1);
+          usage();
         }
-    }
-    
-    static void getString(String bucketName, String objectKey, AmazonS3Encryption s3, boolean printingMetadata)
-    {
-        System.out.println("Getting object '" + objectKey + "' at '" + bucketName + "'");
-        S3Object obj = s3.getObject(bucketName, objectKey);
-        try {
-            System.out.println(IOUtils.toString(obj.getObjectContent()));
-        } catch (IOException e) {
-            throw new SdkClientException("Error streaming content from S3 during download");
-        }
-        if (printingMetadata) {
-            for (Map.Entry<String, String> entry : obj.getObjectMetadata().getUserMetadata().entrySet()) {
-                System.out.println("Key: " + entry.getKey() + " Value: " + entry.getValue());
+        break;
+      case PUTSTRING:
+        if (args.length > filePathArg) {
+          bucketName = new String(args[bucketNameArg].getBytes(StringUtils.UTF8));
+
+          objectKey = new String(args[objectKeyArg].getBytes(StringUtils.UTF8));
+
+          objectContent = new String(args[objectContentArg].getBytes(StringUtils.UTF8));
+
+          // Optional: parse any attributes
+          if (args.length > attributesArg) {
+            attributes = parseAttributes(args[attributesArg]);
+            if (attributes == null) {
+              return;
             }
+          }
+
+          s3 = setUp();
+          if (s3 != null) {
+            putString(bucketName, objectKey, objectContent, s3, attributes);
+          }
+        } else {
+          usage();
         }
-    }
-    
-    static void getFile(String bucketName, String objectKey, String destination, AmazonS3Encryption s3, boolean printingMetadata)
-    {
-        System.out.println("Getting object '" + objectKey + "' at '" + bucketName + "'");
-        S3Object obj = s3.getObject(bucketName, objectKey);
-        Path destinationPath = Paths.get(destination);
-        if (destinationPath.toFile().exists())
-        {
-            destinationPath.toFile().delete();
-        }
-        try {
-            Files.copy(obj.getObjectContent(), destinationPath);
-        } catch (IOException e) {
-            System.out.println("IOException with destination: " + destination);
-            System.exit(1);
-        }
-        if (printingMetadata)
-        {
-            System.out.println("Metadata:");
-            for(Map.Entry<String, String> entry : obj.getObjectMetadata().getUserMetadata().entrySet())
-            {
-                System.out.println("Key: " + entry.getKey() + " Value: " + entry.getValue());
-            }
-        }
-    }
-    
-    static void putMultipart(String bucketName, String objectKey, String filePath, int partSize,
-            AmazonS3Encryption s3, ObjectMetadata s3ObjectMetadata)
-    {
+        break;
 
-        long partSizeBytes = partSize * 1024 * 1024; 
+      case PUTMULTIPART:
+        attributesArg++;  // increment to account for addition of partSize arg
+        if (args.length > partSizeArg) {
+          bucketName = new String(args[bucketNameArg].getBytes(StringUtils.UTF8));
 
-        if (partSizeBytes < 5 * 1024 *1024)
-        {
-            System.out.println(partSizeBytes + " < " + (5 * 1024 *1024));
-            System.out.println("Part size must be 5(mb) or greater");
-            System.exit(1);
-        }
+          objectKey = new String(args[objectKeyArg].getBytes(StringUtils.UTF8));
 
-        File file = new File(filePath);
+          filePath = new String(args[filePathArg].getBytes(StringUtils.UTF8));
 
-        List<PartETag> partETags = new ArrayList<PartETag>();
-
-        long contentLength = file.length();
-        long totalChunks = contentLength/partSizeBytes;
-        if(contentLength % partSizeBytes != 0)
-        {
-            totalChunks++;
-        }
-
-        System.out.println("Initating Multipart Upload");
-        System.out.println("With chunk size of " + partSizeBytes + "bytes");
-        System.out.println(totalChunks + " parts to upload");
-
-        // Step 1: Initiate multipart upload request
-        InitiateMultipartUploadRequest req = 
-                new InitiateMultipartUploadRequest(bucketName, objectKey, s3ObjectMetadata);
-        InitiateMultipartUploadResult res = s3.initiateMultipartUpload(req);
-        try {
-            // Step 2: Upload parts.
-            long filePosition = 0;
-            for (int i = 1; filePosition < contentLength; i++) 
-            {
-                // Last part can be less than 5 MB. Adjust part size.
-                partSizeBytes = Math.min(partSizeBytes, (contentLength - filePosition));
-
-                boolean isLast = i == totalChunks;
-
-                // Create request to upload a part.
-                UploadPartRequest uploadRequest = new UploadPartRequest()
-                        .withBucketName(bucketName).withKey(objectKey)
-                        .withUploadId(res.getUploadId()).withPartNumber(i)
-                        .withFileOffset(filePosition)
-                        .withFile(file)
-                        .withPartSize(partSizeBytes)
-                        .withLastPart(isLast);
-
-                // Upload part and add response to our list.
-                System.out.println("Uploading Part #" + i);
-                partETags.add(
-                        s3.uploadPart(uploadRequest).getPartETag());
-                if (isLast)
-                {
-                    System.out.println("Uploaded last part");
-                }
-
-                filePosition += partSizeBytes;
-            }
-
-            // Step 3: Complete.
-            CompleteMultipartUploadRequest compRequest = new 
-                    CompleteMultipartUploadRequest(
-                            bucketName, 
-                            objectKey, 
-                            res.getUploadId(), 
-                            partETags);
-
-            s3.completeMultipartUpload(compRequest);
-            System.out.println("Upload Complete");
-        }
-        catch (Exception e) 
-        {
-            System.out.println("Exception Occured: " + e.getMessage());
-            System.out.println("Aborting Upload");
-            s3.abortMultipartUpload(new AbortMultipartUploadRequest(
-                    bucketName, objectKey, res.getUploadId()));
-        }
-    }
-    
-    static AmazonS3Encryption setUp()
-    {
-        // Set up IonicEncryptionMaterialsProvider and provide to constructor of IonicS3EncryptionClient
-        IonicEncryptionMaterialsProvider iemp = new IonicEncryptionMaterialsProvider();
-        IonicEncryptionMaterialsProvider.setIonicMetadataMap(S3SampleApp.getMetadataMap());
-        iemp.setEnabledMetadataCapture(true);
-        iemp.setEnabledMetadataReturn(true);
-
-        // Load a plain-text device profile (SEP) from disk 
-        DeviceProfilePersistorPlainText ptPersistor = new DeviceProfilePersistorPlainText();
-        String sProfilePath = System.getProperty("user.home") + "/.ionicsecurity/profiles.pt";
-        try {
-            ptPersistor.setFilePath(sProfilePath);
-        } catch (IonicException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-        }
-        iemp.setPersistor(ptPersistor);
-
-        return IonicS3EncryptionClientBuilder.standard().withEncryptionMaterials(iemp).build();
-    }
-    
-    public static void main(String[] args) throws IOException 
-    {
-        // Command Line Processing
-        
-        if (args.length == 0)
-        {
+          // Parse the size of each part being uploaded in MB
+          // Note: parts must be at least 5MB (except for last part which may be smaller)
+          // https://docs.aws.amazon.com/AmazonS3/latest/API/mpUploadUploadPart.html
+          int partSizeMB = Math.max(Integer.parseInt(args[partSizeArg]), 0);
+          if ((partSizeMB == 0) || (partSizeMB < 5)) {
+            System.out.println("partsize_mb must be a positive integer value 5 or greater");
             usage();
-        }
-        
-        Action action = null;
-        
-        for ( Action a : Action.values())
-        {
-            if (a.str.equals(args[0]))
-            {
-                action = a;
-                break;
+            return;
+          }
+
+          // Optional: parse any attributes
+          if (args.length > attributesArg) {
+            attributes = parseAttributes(args[attributesArg]);
+            if (attributes == null) {
+              return;
             }
+          }
+
+          s3 = setUp();
+          if (s3 != null) {
+            putMultipart(bucketName, objectKey, filePath, partSizeMB, s3, attributes);
+          }
+        } else {
+          usage();
         }
-        if(action == null)
-        {
-            usage();
+
+        break;
+      case GETSTRING:
+        if (args.length > objectKeyArg) {
+          bucketName = new String(args[bucketNameArg].getBytes(StringUtils.UTF8));
+
+          objectKey = new String(args[objectKeyArg].getBytes(StringUtils.UTF8));
+
+          s3 = setUp();
+          if (s3 != null) {
+            getString(bucketName, objectKey, s3);
+          }
+        } else {
+          usage();
         }
-        
-        boolean mFlag = false;
-        
-        if (args.length >= 2 && args[1].equals("-m"))
-        {
-            mFlag = true;
+
+        break;
+      case GETFILE:
+        if (args.length > filePathArg) {
+          bucketName = new String(args[bucketNameArg].getBytes(StringUtils.UTF8));
+
+          objectKey = new String(args[objectKeyArg].getBytes(StringUtils.UTF8));
+
+          filePath = new String(args[filePathArg].getBytes(StringUtils.UTF8));
+
+          s3 = setUp();
+          if (s3 != null) {
+            getFile(bucketName, objectKey, filePath, s3);
+          }
+        } else {
+          usage();
         }
-        
-        ObjectMetadata s3ObjectMetadata= new ObjectMetadata();
-        AmazonS3Encryption s3;
-        
-        switch (action)
-        {
-            case PUTFILE:
-                if (args.length >= 5)
-                {
-                    s3ObjectMetadata.setUserMetadata(mapFromString(args[4]));
-                }
-                if (args.length >= 4)
-                {
-                    s3 = setUp();
-                    putFile(args[1], args[2], args[3], s3, s3ObjectMetadata);
-                } 
-                else
-                {
-                    usage();
-                }
-                break;
-            case PUTSTRING:
-                if (args.length >= 5)
-                {
-                    s3ObjectMetadata.setUserMetadata(mapFromString(args[4]));
-                }
-                if (args.length >= 4)
-                {
-                    s3 = setUp();
-                    putString(args[1], args[2], args[3], s3, s3ObjectMetadata);
-                } 
-                else
-                {
-                    usage();
-                }
-                break;
-                
-            case PUTMULTIPART:
-                if (args.length >= 6)
-                {
-                    s3ObjectMetadata.setUserMetadata(mapFromString(args[5]));
-                }
-                if (args.length >= 5)
-                {
-                    s3 = setUp();
-                    putMultipart(args[1], args[2], args[3], Integer.parseInt(args[4]), s3, s3ObjectMetadata);
-                } 
-                else
-                {
-                    usage();
-                }
-                break;
-            case GETSTRING:
-                if (mFlag && args.length >= 4)
-                {
-                    s3 = setUp();
-                    getString(args[2], args[3], s3, mFlag);
-                }
-                else if (!mFlag && args.length >= 3)
-                {
-                    s3 = setUp();
-                    getString(args[1], args[2], s3, mFlag);
-                }
-                else
-                {
-                    usage();
-                }
-                break;
-            case GETFILE:
-                if (mFlag && args.length >= 5)
-                {
-                    s3 = setUp();
-                    getFile(args[2], args[3], args[4], s3, mFlag);
-                }
-                else if (!mFlag && args.length >= 4)
-                {
-                    s3 = setUp();
-                    getFile(args[1], args[2], args[3], s3, mFlag);
-                }
-                else
-                {
-                    usage();
-                }
-                break;
-            case VERSION:
-                System.out.println(Version.getFullVersion());
-                break;
-        }
+
+        break;
+      case VERSION:
+        System.out.println(Version.getFullVersion());
+        break;
+      default:
+        usage();
+        break;
     }
+  }
 
-    private static void usage()
-    {
-	System.out.println("Usage: prog <put<x> command> | <get<x> command>");
-	System.out.println("put<x> commands:");
-	System.out.println("\tNOTE: <metadata> for these commands is a comma delimited list of string pairs");
-        System.out.println("\t\tEx: \"Foo,Bar,Biz,Baz\" -> [Foo,Bar],[Biz,Biz]");
-	System.out.println("");
-        System.out.println("\tputString <bucketName> <objectKey> <objectContent> [<metadata>]");
-        System.out.println("\tputFile <bucketName> <objectKey> <filePath> [<metadata>]");
-        System.out.println("\tputMultipart <bucketName> <objectKey> <file> <partsize_mb> [<metadata>]");
-	System.out.println("get<x> commands:");
-	System.out.println("\tNOTE: The optional -m prints out metadata associated with the object");
-	System.out.println("");
-        System.out.println("\tgetFile [-m] <bucketName> <objectKey> <destinationPath>");
-        System.out.println("\tgetString [-m] <bucketName> <objectKey>");
-        System.exit(1);
+  private static void usage() {
+    System.out.println("Usage: prog <put<x> command> | <get<x> command> | version");
+    System.out.println("put<x> commands:");
+    System.out
+        .println("\tNOTE: <attributes> for these commands is a comma delimited list of key:value1,value2... ");
+    System.out.println("\t\tEx: \"attribute1:val1:val2,attribute2:val3\" -> [attribute1:val1,val2],[attribute2:val3]");
+    System.out.println("");
+    System.out.println("\tputString <bucketName> <objectKey> <objectContent> [<attributes>]");
+    System.out.println("\tputFile <bucketName> <objectKey> <filePath> [<attributes>]");
+    System.out.println("\tputMultipart <bucketName> <objectKey> <file> <partsize_mb> [<attributes>]");
+    System.out.println("get<x> commands:");
+    System.out.println("\tgetFile <bucketName> <objectKey> <destinationPath>");
+    System.out.println("\tgetString <bucketName> <objectKey>");
+  }
+
+  public static KeyAttributesMap parseAttributes(String str) {
+    KeyAttributesMap ret = new KeyAttributesMap();
+    String[] pairs = str.split(",");
+    for (String pair : pairs){
+      String[] tuples = pair.split(":");
+      ArrayList<String> values = new ArrayList<String>();
+      for(int i = 1; i < tuples.length; i++ ) {
+        values.add(tuples[i]);
+      }
+      ret.put(tuples[0],values);
     }
+    return ret;
+  }
 
-    private static Map<String, String> mapFromString(String str) {
-        String[] tokens = str.split(",");
-        Map<String, String> map = new HashMap<String, String>();
-        if(tokens.length%2 != 0)
-        {
-            System.out.println("Odd number of tokens for metadata. Tokens must be provided in pairs.");
-            System.out.println("Ex: \"Key1, Value1, Key2, Value2\"");
-            System.exit(1);
-        }
-        for (int i=0; i<tokens.length-1; ){
-            map.put(tokens[i++], tokens[i++]);
-        }
-        return map;
+  public static MetadataMap getMetadataMap() {
+    MetadataMap mApplicationMetadata = new MetadataMap();
+    mApplicationMetadata.set("ionic-application-name", "IonicS3Example");
+    mApplicationMetadata.set("ionic-application-version", Version.getFullVersion());
+    mApplicationMetadata.set("ionic-client-type", "IPCS S3 Java");
+    mApplicationMetadata.set("ionic-client-version", Version.getFullVersion());
+
+    return mApplicationMetadata;
+  }
+
+  public static String getCanonicalPathString(String originalPath) {
+    String canonicalPathStr = null;
+
+    try {
+      canonicalPathStr = Paths.get(originalPath).toFile().getCanonicalPath();
+    } catch (NullPointerException e) {
+      System.err.println("Missing original pathname");
+    } catch (IOException e) {
+      System.err.println("Path IOError");
     }
-
-    public static MetadataMap getMetadataMap() 
-    {
-        MetadataMap mApplicationMetadata = new MetadataMap();
-        mApplicationMetadata.set("ionic-application-name", "IonicS3Example");
-        mApplicationMetadata.set("ionic-application-version", "0.0.1");
-        mApplicationMetadata.set("ionic-client-type", "Java Application");
-        mApplicationMetadata.set("ionic-client-version", "0.0");
-
-        return mApplicationMetadata;
-    }	
+    return canonicalPathStr;
+  }
 }
