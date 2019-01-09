@@ -6,6 +6,10 @@
 
 package com.ionicsecurity.ipcs.awss3;
 
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.nio.file.InvalidPathException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -33,7 +37,7 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
     IonicEncryptionMaterialsProvider iemp;
     DeviceProfilePersistorPlainText ptPersistor;
 
-    public IonicEncryptionMaterialsProviderTest(String testName) throws IonicException {
+    public IonicEncryptionMaterialsProviderTest(String testName) throws InvalidPathException, IOException, IonicException {
         super(testName);
         setUp();
     }
@@ -42,10 +46,10 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
         return new TestSuite(IonicEncryptionMaterialsProviderTest.class);
     }
 
-    public void setUp() throws IonicException {
+    public void setUp() throws InvalidPathException, IOException, IonicException {
         AgentSdk.initialize(null);
         ptPersistor = new DeviceProfilePersistorPlainText();
-        String sProfilePath = System.getProperty("user.home") + "/.ionicsecurity/profiles.pt";
+        String sProfilePath = Paths.get(System.getProperty("user.home") + "/.ionicsecurity/profiles.pt").toFile().getCanonicalPath();
         ptPersistor.setFilePath(sProfilePath);
         iemp = new IonicEncryptionMaterialsProvider(ptPersistor);
     }
@@ -71,12 +75,13 @@ public class IonicEncryptionMaterialsProviderTest extends TestCase {
 
         CreateKeysResponse.Key IonicKey = null;
         ArrayList<String> collection = new ArrayList<String>();
-        collection.add("ajp_test");
+        
+        String keyAttrMapKey = new String("IEMP_testGetEncryptionMaterialsWithDesc_KeyAttr");
+        String keyAttrValue = new String("IEMP_testGetEncryptionMaterialsWithDesc_KeyAttrTestValue");
+        collection.add(keyAttrValue);
         KeyAttributesMap myKam = new KeyAttributesMap();
-        myKam.put("ajp_test", collection);
-        CreateKeysResponse response = agent.createKey(myKam);
-        List<CreateKeysResponse.Key> list = response.getKeys();
-        IonicKey = list.get(0);
+        myKam.put(keyAttrMapKey, collection);
+        IonicKey = agent.createKey(myKam).getFirstKey();
         desc.put(IonicEncryptionMaterialsProvider.KEYIDKEY, IonicKey.getId());
 
         EncryptionMaterials encMat = iemp.getEncryptionMaterials(desc);

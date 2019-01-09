@@ -1,21 +1,6 @@
 
 ## Setup Instructions for Developers
 
-### Install Ionic SDK JAR
-
-1. [Download](https://dev-dashboard.ionic.com/#/downloads?tenant=5640bb430ea2684423e0655c) the "Java 2.2.1 SDK"
-2. Extract SDK zip
-3. Add Ionic SDK JAR to Maven Local Repository with the appropriate package information:
-
-~~~bash
-mvn install:install-file -Dfile=ionic-sdk-2.2.1.jar  -DpomFile=pom.xml
-~~~
-
-> NOTE: ionic-sdk-2.2.1.jar is only compatible with Java 7, 8 & 9
-
-> NOTE: Because Ionic uses strong 256-bit keys for encryption, the standard cryptography library built into Java will
-> require that you have installed the [Unlimited Strength Java Cryptography Extension](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html).
-
 ## AWS Documentation:
 * [AWS SDK](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-install.html)
 * [AWS Credentials](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html)
@@ -23,13 +8,6 @@ mvn install:install-file -Dfile=ionic-sdk-2.2.1.jar  -DpomFile=pom.xml
 
 ### Amazon Standard SDKs
 * If you don't already have an AWS Account, go to [Sign In or Create an AWS Account](https://aws.amazon.com/). Select "Create an AWS Account" and follow the instructions to create and configure your AWS account.
-
-### Install AWS SDK
-* `git clone https://github.com/aws/aws-sdk-java.git`
-* `cd aws-sdk-java/`
-* If you have a gpg signing key `mvn clean install` will attempt to sign the SDK jar file using the key.
-* If you want to skip the signing process use `mvn clean install -Dgpg.skip=true`
-
 
 ### Setup AWS Credentials
 #### Create IAM User
@@ -75,35 +53,43 @@ Replace `your_access_key_id` and `your_secret_access_key` with the keys created 
  Mac:
   * `export AWS_ACCESS_KEY_ID=your_access_key_id`
   * `export AWS_SECRET_ACCESS_KEY=your_secret_access_key`
-  * `export AWS_DEFAULT_REGION=your_default_region`
+  * `export AWS_REGION=your_default_region`
 
  Windows:
   * `set AWS_ACCESS_KEY_ID=your_access_key_id`
   * `set AWS_SECRET_ACCESS_KEY=your_secret_access_key`
-  * `set AWS_DEFAULT_REGION=your_default_region`
+  * `set AWS_REGION=your_default_region`
 
 
 ### Build the Project
+To build and install the Ionic S3 sdk `mvn install`
 
-`./build.sh` or `build.bat`
+To build the IonicS3SampleApp from /awss3examples `mvn package`
 
 ### Usage
 
 #### Sample App
 
-After the build, a fat JAR of the sample app is produced at `awss3examples/target/S3SampleApp.jar`.
+After the build, a fat JAR of the sample app is produced at `awss3examples/target/IonicS3SampleApp.jar`.
 
 Ensure that your Ionic device credentials can be located at `${user.home}/.ionicsecurity/profiles.pt`.
 
-The user can run the program with either "put" or "get" commands with usage as follows:
+The user can run the program from /awss3examples with either "put" or "get" commands with usage as follows:
 * `./run.sh  putString <bucketName> <objectKey> <objectContent> [<metadata>]`
 * `./run.sh  putFile <bucketName> <objectKey> <filePath> [<metadata>]`
 * `./run.sh  putMultipart <bucketName> <objectKey> <file> <partsize_mb> [<metadata>]`
 * `./run.sh  getFile [-m] <bucketName> <objectKey> <destinationPath>`
 * `./run.sh  getString [-m] <bucketName> <objectKey>`
+Windows users should use ./run.bat instead
+
+Note: S3SampleApp does not protect against invalid entry of AWS S3 bucket names or Object Keys
+      Current Rules for naming S3 buckets can be found at:
+          https://docs.aws.amazon.com/AmazonS3/latest/dev//BucketRestrictions.html#bucketnamingrules
+      Current Rules for specifying Object Keys can be found at:
+          https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html#object-keys
 
 #### Using the Library
 
 Using the library as a developer is documented in the `docs/content/` directories.
-The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.7.1.jar`.
+The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.7.2.jar`.
 This JAR is thin, and needs the Ionic SDK and the AWS SDKs available during builds that use it.

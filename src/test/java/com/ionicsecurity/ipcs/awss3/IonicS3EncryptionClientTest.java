@@ -21,6 +21,7 @@ import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +50,8 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 
 import com.ionic.sdk.agent.AgentSdk;
+import com.ionic.sdk.agent.key.KeyAttributesMap;
+import com.ionic.sdk.agent.request.createkey.CreateKeysRequest;
 import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
 import com.ionic.sdk.error.IonicException;
 
@@ -288,8 +291,15 @@ public class IonicS3EncryptionClientTest {
 
         ObjectMetadata s3ObjectMetadata = new ObjectMetadata();
 
+        KeyAttributesMap attributes = new KeyAttributesMap();
+        KeyAttributesMap mutableAttributes = new KeyAttributesMap();
+        attributes.put("Attribute", Arrays.asList("Val1","Val2","Val3"));
+        mutableAttributes.put("Mutable-Attribute", Arrays.asList("Val1","Val2","Val3"));
+
+        CreateKeysRequest.Key reqKey = new CreateKeysRequest.Key("", 1, attributes, mutableAttributes);
+
         InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucketName, key, s3ObjectMetadata);
-        InitiateMultipartUploadResult res = isec.initiateMultipartUpload(req);
+        InitiateMultipartUploadResult res = isec.initiateMultipartUpload(req, reqKey);
 
         try {
             long filePosition = 0;
@@ -314,5 +324,45 @@ public class IonicS3EncryptionClientTest {
             isec.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, key, res.getUploadId()));
             fail("AmazonS3Exception during Multipart upload: " + ase.getErrorMessage());
         }
+    }
+
+    @Test
+    public void testPutAndGetWithCreatRequestKey() throws IOException {
+        try {
+            if (!(isec.doesBucketExist(bucketName))) {
+                isec.createBucket(new CreateBucketRequest(bucketName));
+            }
+        } catch (AmazonServiceException ase) {
+            fail("AmazonServiceException while creating bucket: " + ase.getErrorMessage());
+        } catch (AmazonClientException ace) {
+            fail("AmazonClientException while creating bucket: " + ace.getMessage());
+        }
+
+        String key = "attributesTest";
+        PutObjectRequest por = new PutObjectRequest(bucketName, key, uploadFile);
+        KeyAttributesMap attributes = new KeyAttributesMap();
+        KeyAttributesMap mutableAttributes = new KeyAttributesMap();
+        attributes.put("Attribute", Arrays.asList("Val1","Val2","Val3"));
+        mutableAttributes.put("Mutable-Attribute", Arrays.asList("Val1","Val2","Val3"));
+
+        CreateKeysRequest.Key reqKey = new CreateKeysRequest.Key("", 1, attributes, mutableAttributes);
+
+        try {
+            isec.putObject(por, reqKey);
+        } catch (AmazonS3Exception ase) {
+            fail("AmazonS3Exception while putting: " + ase.getErrorMessage());
+        }
+
+        GetObjectRequest gor = new GetObjectRequest(bucketName, key);
+        IonicS3EncryptionClient.IonicKeyS3ObjectPair pair = null;
+
+        try {
+            pair = isec.getObjectAndKey(gor);
+        } catch (AmazonS3Exception ase) {
+            fail("AmazonS3Exception while getting: " + ase.getErrorMessage());
+        }
+
+        assertEquals(pair.getKey().getAttributesMap().get("Attribute"), attributes.get("Attribute"));
+        assertTrue(pair.getKey().getMutableAttributesMap().equals(mutableAttributes));
     }
 }
