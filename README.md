@@ -64,13 +64,13 @@ Replace `your_access_key_id` and `your_secret_access_key` with the keys created 
 ### Build the Project
 To build and install the Ionic S3 sdk `mvn install`
 
-To build the IonicS3SampleApp from /awss3examples `mvn package`
+To build the IonicS3SampleApp from ./examples `mvn package`
 
 ### Usage
 
 #### Sample App
 
-After the build, a fat JAR of the sample app is produced at `awss3examples/target/IonicS3SampleApp.jar`.
+After the build, a fat JAR of the sample app is produced at `./examples/target/IonicS3SampleApp.jar`.
 
 Ensure that your Ionic device credentials can be located at `${user.home}/.ionicsecurity/profiles.pt`.
 
@@ -78,8 +78,8 @@ The user can run the program from /awss3examples with either "put" or "get" comm
 * `./run.sh  putString <bucketName> <objectKey> <objectContent> [<metadata>]`
 * `./run.sh  putFile <bucketName> <objectKey> <filePath> [<metadata>]`
 * `./run.sh  putMultipart <bucketName> <objectKey> <file> <partsize_mb> [<metadata>]`
-* `./run.sh  getFile [-m] <bucketName> <objectKey> <destinationPath>`
-* `./run.sh  getString [-m] <bucketName> <objectKey>`
+* `./run.sh  getFile <bucketName> <objectKey> <destinationPath>`
+* `./run.sh  getString <bucketName> <objectKey>`
 Windows users should use ./run.bat instead
 
 Note: S3SampleApp does not protect against invalid entry of AWS S3 bucket names or Object Keys
@@ -90,6 +90,6 @@ Note: S3SampleApp does not protect against invalid entry of AWS S3 bucket names 
 
 #### Using the Library
 
-Using the library as a developer is documented in the `docs/content/` directories.
-The JAR for use here is produced in `ionics3/target/`, such as `ionics3/target/ionics3-0.7.2.jar`.
+Developer documentation for this library can be found at https://dev.ionic.com/integrations/aws-s3.
+The JAR for use here is produced in `./target/`, such as `./target/ionic-for-aws-java-sdk-s3-1.0.0.jar`.
 This JAR is thin, and needs the Ionic SDK and the AWS SDKs available during builds that use it.
