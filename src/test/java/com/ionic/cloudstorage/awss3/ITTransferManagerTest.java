@@ -1,5 +1,5 @@
 /*
- * (c) 2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -28,13 +28,19 @@ import java.util.List;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.Assume;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
+/* TODO: Move sourceDir, destDir, sourceFile, destFile into setup and add
+    provisions in TestUtils.java for creating test files and directories on
+    the fly.*/
+public class ITTransferManagerTest {
 
-public class TransferManagerFunctionalTest {
+    static Logger log = LogManager.getLogger();
 
     private static IonicEncryptionMaterialsProvider iemp = null;
     private static IonicS3EncryptionClient ionicS3Client = null;
@@ -57,6 +63,7 @@ public class TransferManagerFunctionalTest {
                 iemp = null;
                 ionicS3Client = null;
                 transferManager = null;
+                log.warn("setup() was unsucessful: " + e.getMessage());
             }
             s3Client = AmazonS3ClientBuilder.defaultClient();
         }
@@ -65,11 +72,11 @@ public class TransferManagerFunctionalTest {
 
     @Before
     public void preconditions() {
-        Assume.assumeNotNull(iemp);
-        Assume.assumeNotNull(ionicS3Client);
-        Assume.assumeNotNull(s3Client);
-        Assume.assumeNotNull(transferManager);
-        Assume.assumeNotNull(testBucket);
+        assertNotNull(iemp);
+        assertNotNull(ionicS3Client);
+        assertNotNull(s3Client);
+        assertNotNull(transferManager);
+        assertNotNull(testBucket);
     }
 
     @Test
@@ -81,12 +88,14 @@ public class TransferManagerFunctionalTest {
 
         File sourceFile = TestUtils.getSourceFile();
         File destFile = TestUtils.getDestFile();
-        Assume.assumeNotNull(sourceFile);
-        Assume.assumeNotNull(destFile);
+        assertNotNull(sourceFile);
+        assertNotNull(destFile);
 
+        log.info("Uploading Object " + key + " to bucket " + testBucket + " with Ionic Backed TransferManager");
         Upload upload = transferManager.upload(testBucket, key, sourceFile);
         upload.waitForUploadResult();
 
+        log.info("Downloading Object " + key + " from bucket " + testBucket + " with Ionic Backed TransferManager");
         Download download = transferManager.download(testBucket, key, destFile);
         download.waitForCompletion();
 
@@ -99,7 +108,7 @@ public class TransferManagerFunctionalTest {
             IOUtils.contentEquals(obj.getObjectContent(), FileUtils.openInputStream(sourceFile)));
     }
 
-    @Test
+    @Ignore
     public void uploadAndDownloadFileComparison() throws IOException, InterruptedException {
         String key = TestUtils.getTestObjectKey();
         if (key == null) {
@@ -115,15 +124,17 @@ public class TransferManagerFunctionalTest {
 
         File sourceFile = TestUtils.getSourceFile();
         File destFile = TestUtils.getDestFile();
-        Assume.assumeNotNull(sourceFile);
-        Assume.assumeNotNull(destFile);
+        assertNotNull(sourceFile);
+        assertNotNull(destFile);
 
+        log.info("Uploading Object " + key + " to bucket " + testBucket + " with regular TransferManager");
         Upload upload = s3transferManager.upload(testBucket, key, sourceFile);
         upload.waitForUploadResult();
 
         Download download = s3transferManager.download(testBucket, key, destFile);
         download.waitForCompletion();
 
+        log.info("Downloading Object " + key + " from bucket " + testBucket + " with regular TransferManager");
         assertTrue("Downloaded File did not match original File",
             FileUtils.contentEquals(sourceFile, destFile));
 
@@ -142,12 +153,14 @@ public class TransferManagerFunctionalTest {
 
         File sourceDir = TestUtils.getSourceDirectory();
         File destDir = TestUtils.getDestDirectory();
-        Assume.assumeNotNull(sourceDir);
-        Assume.assumeNotNull(destDir);
+        assertNotNull(sourceDir);
+        assertNotNull(destDir);
 
+        log.info("Uploading Files from " + sourceDir + " to bucket " + testBucket + " with Ionic Backed TransferManager");
         MultipleFileUpload upload = transferManager.uploadDirectory(testBucket, bucketDirectory, sourceDir, true);
         upload.waitForCompletion();
 
+        log.info("Downloading Files to " + destDir + " from bucket " + testBucket + " with Ionic Backed TransferManager");
         MultipleFileDownload download = transferManager.downloadDirectory(testBucket, bucketDirectory, destDir);
         download.waitForCompletion();
 
@@ -164,15 +177,17 @@ public class TransferManagerFunctionalTest {
 
         File sourceDir = TestUtils.getSourceDirectory();
         File destDir = TestUtils.getDestDirectory();
-        Assume.assumeNotNull(sourceDir);
-        Assume.assumeNotNull(destDir);
+        assertNotNull(sourceDir);
+        assertNotNull(destDir);
 
         List<File> fileList = Arrays.asList(sourceDir.listFiles());
 
+        log.info("Uploading Files from " + sourceDir + " to bucket " + testBucket + " with Ionic Backed TransferManager");
         MultipleFileUpload upload = transferManager
             .uploadFileList(testBucket, bucketDirectory, sourceDir, fileList);
         upload.waitForCompletion();
 
+        log.info("Downloading Files to " + destDir + " from bucket " + testBucket + " with Ionic Backed TransferManager");
         MultipleFileDownload download = transferManager.downloadDirectory(testBucket, bucketDirectory, destDir);
         download.waitForCompletion();
 

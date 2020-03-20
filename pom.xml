@@ -6,12 +6,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ionic.cloudstorage</groupId>
-    <artifactId>ionic-for-aws-java-sdk-s3</artifactId>
+    <artifactId>machina-tools-aws-s3</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 
-    <name>ionic-for-aws-java-sdk-s3</name>
-    <description>Ionic Protect for AWS S3 Cloud Storage offers a simple way for developers building atop AWS S3’s Java SDK to invoke Ionic’s protection and policy functionality as data moves to and from the cloud storage. This addresses use cases such as migration from on-prem storage solutions, protecting data across multi-region or multi-cloud envrionments, applying granular cryptographic control, and more.</description>
+    <name>machina-tools-aws-s3</name>
+    <description>Machina Tools AWS S3 offers a simple way for developers building atop AWS S3’s Java SDK to invoke Ionic’s protection and policy functionality as data moves to and from the cloud storage. This addresses use cases such as migration from on-prem storage solutions, protecting data across multi-region or multi-cloud envrionments, applying granular cryptographic control, and more.</description>
     <url>https://dev.ionic.com/integrations/aws-s3</url>
 
     <licenses>
@@ -39,18 +39,19 @@
     <properties>
         <build>LOCAL</build>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <testExclude>**/IT*.java</testExclude>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.json</artifactId>
-            <version>1.0.4</version>
+            <groupId>com.ionic</groupId>
+            <artifactId>ionic-sdk</artifactId>
+            <version>2.6.1</version>
         </dependency>
         <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.56</version>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
+            <version>1.1.4</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -59,24 +60,25 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.11.458</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-iam</artifactId>
-            <version>1.11.458</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ionic</groupId>
-            <artifactId>ionic-sdk</artifactId>
-            <version>2.4.0</version>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.11.2</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.11.700</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-iam</artifactId>
+            <version>1.11.700</version>
         </dependency>
         <dependency>
             <groupId>javax.xml.bind</groupId>
@@ -90,7 +92,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.0</version>
+                <version>3.8.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -103,14 +105,31 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M3</version>
                 <configuration>
+                    <excludes>
+                        <exclude>${testExclude}, *DeniedTest.java, ITTransferManagerTest.java</exclude>
+                    </excludes>
                     <properties>
                         <property>
                             <name>listener</name>
-                            <value>com.ionic.junit.listen.SkipFailListener</value>
+                            <value>com.ionic.junit.listen.IonicListener</value>
                         </property>
                     </properties>
                     <forkMode>once</forkMode>
                     <workingDirectory>target</workingDirectory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <links>
+                        <link>https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/</link>
+                        <link>https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/</link>
+                    </links>
+                    <top> NOTE: Select NO FRAME when attempting to view AWS Documentation</top>
+                    <header>${project.name} ${project.version} API</header>
+                    <sourceFileExcludes>Version.java</sourceFileExcludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -125,22 +144,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <version>3.1.0</version>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <includeDependencySources>true</includeDependencySources>
-                    <dependencySourceIncludes>
-                        <dependencySourceInclude>com.ionic:ionic-sdk</dependencySourceInclude>
-                        <dependencySourceInclude>com.amazonaws:aws-java-sdk-s3</dependencySourceInclude>
-                    </dependencySourceIncludes>
-                    <excludePackageNames>com.ionic.sdk.core.*:com.ionic.sdk.crypto*:com.ionic.sdk.cipher*:com.ionic.sdk.httpclient*:com.ionic.sdk.agent.cipher*:com.amazonaws.auth*:com.amazonaws.services.s3.model.*:com.amazonaws.services.s3.i*:com.amazonaws.services.s3.t*</excludePackageNames>
-                    <additionalOptions>
-                        <additionalOption>-Xdoclint:none</additionalOption>
-                    </additionalOptions>
-                </configuration>
             </plugin>
         </plugins>
     </build>

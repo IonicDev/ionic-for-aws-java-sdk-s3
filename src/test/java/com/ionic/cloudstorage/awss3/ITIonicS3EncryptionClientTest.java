@@ -1,5 +1,5 @@
 /*
- * (c) 2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -23,7 +23,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ionic.sdk.agent.Agent;
-import com.ionic.sdk.agent.data.MetadataMap;
 import com.ionic.sdk.agent.key.KeyAttributesMap;
 import com.ionic.sdk.agent.request.createkey.CreateKeysRequest;
 import com.ionic.sdk.agent.request.getkey.GetKeysResponse;
@@ -45,13 +44,18 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.Assume;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 
-public class IonicS3EncryptionClientFunctionalTest {
+// TODO: See TODO in ITTransferManagerTest.java
+public class ITIonicS3EncryptionClientTest {
+
+    static Logger log = LogManager.getLogger();
 
     private static IonicEncryptionMaterialsProvider iemp = null;
     private static IonicS3EncryptionClient ionicS3Client = null;
@@ -74,6 +78,7 @@ public class IonicS3EncryptionClientFunctionalTest {
                 iemp = null;
                 ionicS3Client = null;
                 agent = null;
+                log.warn("setup() was unsucessful: " + e.getMessage());
             }
             s3Client = AmazonS3ClientBuilder.defaultClient();
         }
@@ -83,10 +88,10 @@ public class IonicS3EncryptionClientFunctionalTest {
 
     @Before
     public void preconditions() {
-        Assume.assumeNotNull(ionicS3Client);
-        Assume.assumeNotNull(testBucket);
-        Assume.assumeNotNull(agent);
-        Assume.assumeNotNull(iemp);
+        assertNotNull(ionicS3Client);
+        assertNotNull(testBucket);
+        assertNotNull(agent);
+        assertNotNull(iemp);
     }
 
     @Test
@@ -96,8 +101,10 @@ public class IonicS3EncryptionClientFunctionalTest {
             key = "testPutAndGetObject";
         }
 
+        log.info("Putting Object " + key + " on to bucket " + testBucket + " with Ionic Encryption Client");
         ionicS3Client.putObject(testBucket, key, testString);
         waitUntilObjectExists(testBucket, key);
+        log.info("Getting Object " + key + " from bucket " + testBucket + " with Ionic Encryption Client");
         S3Object obj = ionicS3Client.getObject(testBucket, key);
         assertTrue("Decrypted object content does not match original String",
             IOUtils.toString(obj.getObjectContent(), "UTF8").equals(testString));
@@ -110,10 +117,12 @@ public class IonicS3EncryptionClientFunctionalTest {
             key = "testAtRestEncryption";
         }
 
+        log.info("Putting Object " + key + " on to bucket " + testBucket + " with Ionic Encryption Client");
         ionicS3Client.putObject(testBucket, key, testString);
         waitUntilObjectExists(testBucket, key);
+        log.info("Getting Object " + key + " from bucket " + testBucket + " with S3 Client");
         S3Object obj = s3Client.getObject(testBucket, key);
-        assertFalse("Uloaded object content matches original String",
+        assertFalse("Uploaded object content matches original String",
             IOUtils.toString(obj.getObjectContent(), "UTF8").equals(testString));
     }
 
@@ -134,12 +143,15 @@ public class IonicS3EncryptionClientFunctionalTest {
         requestMetadata.addUserMetadata(testMetaKey, testMetaValue);
         requestMetadata.setContentLength(testString.length());
 
+        log.info("Putting Object " + key + " on to bucket " + testBucket + " with Ionic Encryption Client");
         PutObjectRequest request = new PutObjectRequest(testBucket, key, iStream, requestMetadata);
         ionicS3Client.putObject(request);
         waitUntilObjectExists(testBucket, key);
+        log.info("Getting S3Object Metadata for " + key + " from bucket " + testBucket);
         ObjectMetadata uploadedMetadata = s3Client.getObjectMetadata(testBucket, key);
         String ionicKeyId = extractIonicKeyIDFromMatdesc(uploadedMetadata.getUserMetaDataOf("x-amz-matdesc"));
 
+        log.info("Getting Ionic Key " + ionicKeyId + " with Ionic Agent");
         GetKeysResponse.Key ionicKey = agent.getKey(ionicKeyId).getFirstKey();
 
         assertTrue( "Captured metadata value is not equal to \"" + testMetaValue + '"',
@@ -163,12 +175,15 @@ public class IonicS3EncryptionClientFunctionalTest {
         requestMetadata.addUserMetadata(testMetaKey, testMetaValue);
         requestMetadata.setContentLength(testString.length());
 
+        log.info("Putting Object " + key + " on to bucket " + testBucket + " with Ionic Encryption Client");
         PutObjectRequest request = new PutObjectRequest(testBucket, key, iStream, requestMetadata);
         ionicS3Client.putObject(request);
         waitUntilObjectExists(testBucket, key);
+        log.info("Getting S3Object Metadata for " + key + " from bucket " + testBucket);
         ObjectMetadata uploadedMetadata = s3Client.getObjectMetadata(testBucket, key);
         String ionicKeyId = extractIonicKeyIDFromMatdesc(uploadedMetadata.getUserMetaDataOf("x-amz-matdesc"));
 
+        log.info("Getting Ionic Key " + ionicKeyId + " with Ionic Agent");
         GetKeysResponse.Key ionicKey = agent.getKey(ionicKeyId).getFirstKey();
 
         assertTrue( "Metadata key \"" + testMetaKey + "\" is present in IonicKey Attributes",
@@ -190,11 +205,14 @@ public class IonicS3EncryptionClientFunctionalTest {
         mutableAttributes.put("Mutable-Attribute", Arrays.asList("Val1", "Val2", "Val3"));
         CreateKeysRequest.Key ionicRequestKey = new CreateKeysRequest.Key("", 1, attributes, mutableAttributes);
 
+        log.info("Putting Object " + key + " on to bucket " + testBucket + " with Ionic Encryption Client");
         ionicS3Client.putObject(testBucket, key, testString, ionicRequestKey);
         waitUntilObjectExists(testBucket, key);
+        log.info("Getting S3Object Metadata for " + key + " from bucket " + testBucket);
         ObjectMetadata uploadedMetadata = s3Client.getObjectMetadata(testBucket, key);
         String ionicKeyId = extractIonicKeyIDFromMatdesc(uploadedMetadata.getUserMetaDataOf("x-amz-matdesc"));
 
+        log.info("Getting Ionic Key " + ionicKeyId + " with Ionic Agent");
         GetKeysResponse.Key ionicKey = agent.getKey(ionicKeyId).getFirstKey();
 
         assertTrue("Response Key Attributes do not match specified Attributes",
@@ -219,8 +237,10 @@ public class IonicS3EncryptionClientFunctionalTest {
         mutableAttributes.put("Mutable-Attribute", Arrays.asList("Val1", "Val2", "Val3"));
         CreateKeysRequest.Key ionicRequestKey = new CreateKeysRequest.Key("", 1, attributes, mutableAttributes);
 
+        log.info("Putting Object " + key + " on to bucket " + testBucket + " with Ionic Encryption Client");
         ionicS3Client.putObject(testBucket, key, testString, ionicRequestKey);
         waitUntilObjectExists(testBucket, key);
+        log.info("Getting Object " + key + " from bucket " + testBucket + " with Ionic Encryption Client");
         IonicS3EncryptionClient.IonicKeyS3ObjectPair pair = ionicS3Client.getObjectAndKey(testBucket, key);
         S3Object obj = pair.getS3Object();
         GetKeysResponse.Key ionicKey = pair.getKey();
@@ -241,8 +261,10 @@ public class IonicS3EncryptionClientFunctionalTest {
         if (key == null) {
             key = "testUnencryptedDownload";
         }
+        log.info("Putting Object " + key + " on to bucket " + testBucket + " with S3 Client");
         s3Client.putObject(testBucket, key, testString);
 
+        log.info("Getting Object " + key + " from bucket " + testBucket + " with Ionic Encryption Client");
         S3Object object = ionicS3Client.getObject(testBucket, key);
         String contents = IOUtils.toString(object.getObjectContent());
         assertTrue("Unencrypted download did not match source", testString.equals(contents));
@@ -259,10 +281,12 @@ public class IonicS3EncryptionClientFunctionalTest {
 
         InputStream inStream = null;
         long sourceSize = 0;
-        File sourceFile = TestUtils.getSourceFile();
-        File destFile = TestUtils.getDestFile();
-        Assume.assumeNotNull(sourceFile);
-        Assume.assumeNotNull(destFile);
+        String testDirectory = TestUtils.getTestDirectoryString(key);
+        // Generate a source file larger than the partSizeBytes value.
+        File sourceFile = TestUtils.generateTestFile(testDirectory, key + ".source", 7);
+        File destFile = TestUtils.generateTestFile(testDirectory, key + ".dest", 0);
+        assertNotNull(sourceFile);
+        assertNotNull(destFile);
 
         KeyAttributesMap attributes = new KeyAttributesMap();
         KeyAttributesMap mutableAttributes = new KeyAttributesMap();
@@ -275,6 +299,7 @@ public class IonicS3EncryptionClientFunctionalTest {
         uploadMultipart(key, sourceFile, reqKey);
         inStream = new FileInputStream(sourceFile);
 
+        log.info("Getting Object " + key + " from bucket " + testBucket + " with Ionic Encryption Client");
         IonicS3EncryptionClient.IonicKeyS3ObjectPair pair;
         pair = ionicS3Client.getObjectAndKey(testBucket, key);
 
@@ -308,6 +333,7 @@ public class IonicS3EncryptionClientFunctionalTest {
 
         InitiateMultipartUploadRequest req =
                 new InitiateMultipartUploadRequest(testBucket, key, s3ObjectMetadata);
+        log.info("Initiaing multipartUpload for " + key + " to bucket " + testBucket + " with Ionic Encryption Client");
         InitiateMultipartUploadResult res = ionicS3Client.initiateMultipartUpload(req, ionicKey);
 
         try {
@@ -316,6 +342,7 @@ public class IonicS3EncryptionClientFunctionalTest {
                 partSizeBytes = Math.min(partSizeBytes, (contentLength - filePosition));
                 boolean isLast = i == totalChunks;
 
+                log.info("Uploading part " + i + " for " + key + " to bucket " + testBucket + " with Ionic Encryption Client");
                 UploadPartRequest uploadRequest = new UploadPartRequest().withBucketName(testBucket)
                         .withKey(key).withUploadId(res.getUploadId()).withPartNumber(i)
                         .withFileOffset(filePosition).withFile(sourceFile)
@@ -326,6 +353,7 @@ public class IonicS3EncryptionClientFunctionalTest {
                 filePosition += partSizeBytes;
             }
 
+            log.info("Completing multipartUpload for " + key + " to bucket " + testBucket + " with Ionic Encryption Client");
             CompleteMultipartUploadRequest compRequest = new CompleteMultipartUploadRequest(
                     testBucket, key, res.getUploadId(), partETags);
 
@@ -346,6 +374,7 @@ public class IonicS3EncryptionClientFunctionalTest {
         int attempts = 0;
         while(s3Client.doesObjectExist(bucket, objectKey) == false && attempts < 5) {
             attempts++;
+            log.info("Waiting for availability of " + objectKey + " on bucket " + testBucket + " attempt " + attempts);
             if (attempts >= 5) {
                 throw new TimeoutException("Timed out waiting for uploaded object " +
                     objectKey + " to become available.");

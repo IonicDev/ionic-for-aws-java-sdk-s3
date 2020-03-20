@@ -1,5 +1,5 @@
 /*
- * (c) 2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -12,14 +12,17 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.ionic.sdk.agent.Agent;
 import com.ionic.sdk.error.IonicException;
 import java.io.IOException;
-import org.junit.Assume;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.Test;
 
-public class IonicS3EncryptionClientDeniedTest {
+public class ITIonicS3EncryptionClientDeniedTest {
+
+    static Logger log = LogManager.getLogger();
 
     private static IonicEncryptionMaterialsProvider iemp = null;
     private static IonicS3EncryptionClient ionicS3Client = null;
@@ -38,6 +41,7 @@ public class IonicS3EncryptionClientDeniedTest {
                 // that dependent tests are each skipped during the preconditions check.
                 iemp = null;
                 ionicS3Client = null;
+                log.warn("setup() was unsucessful: " + e.getMessage());
             }
         }
         testBucket = TestUtils.getTestBucket();
@@ -46,9 +50,8 @@ public class IonicS3EncryptionClientDeniedTest {
 
     @Before
     public void preconditions() {
-        Assume.assumeTrue(TestUtils.isProfilePolicyDenied());
-        Assume.assumeNotNull(ionicS3Client);
-        Assume.assumeNotNull(testBucket);
+        assertNotNull(ionicS3Client);
+        assertNotNull(testBucket);
     }
 
     @Rule
@@ -62,12 +65,14 @@ public class IonicS3EncryptionClientDeniedTest {
             key = "testPutAndGetObject";
         }
 
+        log.info("Putting Object " + key + " onto bucket " + testBucket + " with Ionic Encryption Client");
         ionicS3Client.putObject(testBucket, key, testString);
 
         thrown.expect(AmazonS3Exception.class);
         thrown.expectMessage("40024 - Key fetch or creation was denied by the server " +
-            "(Service: null; Status Code: 0; Error Code: null; Request ID: null; S3 Extended Request ID: null");
+            "(Service: Ionic Security; Status Code: 40024; Error Code: 40024; Request ID: null; S3 Extended Request ID: null");
 
+        log.info("Getting Object " + key + " from bucket " + testBucket + " with Ionic Encryption Client");
         ionicS3Client.getObject(testBucket, key);
     }
 

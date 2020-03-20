@@ -1,5 +1,5 @@
 /*
- * (c) 2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -15,15 +15,22 @@ import com.ionic.sdk.device.profile.persistor.DeviceProfilePersistorPlainText;
 import com.ionic.sdk.error.AgentErrorModuleConstants;
 import com.ionic.sdk.error.IonicException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 
 public class TestUtils {
+
+    static Logger log = LogManager.getLogger();
 
     protected static String testBucketEnv = "IONIC_S3_TEST_BUCKET";
     protected static String testBucketProp = "testBucket";
@@ -100,42 +107,41 @@ public class TestUtils {
         return file;
     }
 
-    protected static boolean isProfilePolicyDenied() {
-        String denied = System.getProperty(testPolicyDeniedProp);
-        if (denied != null) {
-            return denied.equalsIgnoreCase("true");
-        }
-        return false;
-    }
-
     protected static DeviceProfilePersistorPlainText getPersistor() throws IonicException {
         DeviceProfilePersistorPlainText ptPersistor = null;
+        log.info("Attempting to fetch persistor path from properties");
         String ptPersitorPath = System.getProperty(testPersistorProp);
         if (ptPersitorPath == null) {
+            log.info("Attempting to load persistor from default location");
             ptPersitorPath = System.getProperty("user.home") + "/.ionicsecurity/profiles.pt";
         }
         if (Files.exists(Paths.get(ptPersitorPath))) {
             return new DeviceProfilePersistorPlainText(ptPersitorPath);
         } else {
+            log.error("Failed to load persistor from " + ptPersitorPath);
             throw new IonicException(AgentErrorModuleConstants.ISAGENT_NO_DEVICE_PROFILE);
         }
     }
 
     protected static Agent getAgent() throws IonicException {
+        log.info("Constructing Ionic Agent with Persisor");
         Agent agent = new Agent();
         agent.initialize(getPersistor());
         return agent;
     }
 
     protected static IonicEncryptionMaterialsProvider getIEMP() throws IonicException {
+        log.info("Constructing Ionic Encryption Materials Provider with Persistor");
         return new IonicEncryptionMaterialsProvider(getPersistor());
     }
 
     protected static Boolean awsCredsAvailable() {
+        log.info("Checking availability of AWS Credentials");
         try {
             DefaultAWSCredentialsProviderChain.getInstance().getCredentials();
             new DefaultAwsRegionProviderChain().getRegion();
         } catch (SdkClientException e) {
+            log.warn("AWS Credentials not available: " + e.getMessage());
             return false;
         }
         return true;
@@ -191,6 +197,33 @@ public class TestUtils {
                 map.put(fileArray[i].getName(), fileArray[i]);
             }
         return map;
+    }
+
+    protected static String getTestDirectoryString(String testMethodName) {
+        File file = FileSystems.getDefault().getPath("." + File.separator + testMethodName)
+                .toAbsolutePath().toFile();
+        file.mkdirs();
+        return file.toString();
+    }
+
+    protected static File generateTestFile(String directory, String fileName, int sizeInMb)
+            throws FileNotFoundException, IOException {
+        String fullPath = directory + File.separator + fileName;
+        File file = new File(fullPath);
+        file.createNewFile();
+        if (sizeInMb > 0) {
+            long newSize = sizeInMb * 1024 * 1024;
+            RandomAccessFile raf = new RandomAccessFile(file, "rw");
+            try
+            {
+                raf.setLength(newSize);
+            }
+            finally
+            {
+                raf.close();
+            }
+        }
+        return file;
     }
 
 }

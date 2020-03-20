@@ -1,5 +1,5 @@
 /*
- * (c) 2017-2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2017-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -8,7 +8,10 @@ package com.ionic.cloudstorage.awss3;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
 import java.util.Map;
+import com.ionic.sdk.agent.Agent;
+import com.ionic.sdk.error.IonicException;
 import com.amazonaws.services.s3.AmazonS3Encryption;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 import com.amazonaws.services.s3.model.EncryptionMaterialsProvider;
@@ -16,7 +19,7 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class IonicS3EncryptionClientBuilderUnitTest {
+public class UTIonicS3EncryptionClientBuilderTest {
 
     static Boolean awsCredsAvailable;
 
@@ -85,9 +88,30 @@ public class IonicS3EncryptionClientBuilderUnitTest {
     }
 
     @Test
-    public void defaultClient() {
+    public void defaultClient() throws IonicException, IOException {
         Assume.assumeTrue(awsCredsAvailable);
         AmazonS3Encryption ionicEncryptionClient = IonicS3EncryptionClientBuilder.defaultClient();
+        assertTrue(ionicEncryptionClient instanceof IonicS3EncryptionClient);
+    }
+
+    @Test
+    public void builderWithAgent() {
+        Assume.assumeTrue(awsCredsAvailable);
+        Agent agent = new Agent();
+        AmazonS3Encryption ionicEncryptionClient = IonicS3EncryptionClientBuilder.standard().withIonicAgent(agent).build();
+        assertTrue(ionicEncryptionClient instanceof IonicS3EncryptionClient);
+    }
+
+    @Test
+    public void ionicBuilderWithProvider() {
+        Assume.assumeTrue(awsCredsAvailable);
+        IonicS3EncryptionClient ionicEncryptionClient = null;
+        try {
+            ionicEncryptionClient = IonicS3EncryptionClientBuilder.standard()
+                .withEncryptionMaterials(new IonicEncryptionMaterialsProvider()).buildIonic();
+        } catch (Exception e) {
+            fail("Unexpected Exception building IonicS3EncryptionClient with IonicMaterialsProvider");
+        }
         assertTrue(ionicEncryptionClient instanceof IonicS3EncryptionClient);
     }
 
