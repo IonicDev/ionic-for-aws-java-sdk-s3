@@ -1,5 +1,5 @@
 /*
- * (c) 2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -15,13 +15,12 @@ import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.IonicException;
 import java.util.HashMap;
 import javax.crypto.spec.SecretKeySpec;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 
-public class IonicEncryptionMaterialsProviderFunctionalTest {
+public class ITIonicEncryptionMaterialsProviderTest {
 
     private static IonicEncryptionMaterialsProvider iemp = null;
     private static Agent agent = null;
@@ -41,8 +40,8 @@ public class IonicEncryptionMaterialsProviderFunctionalTest {
 
     @Before
     public void preconditions() {
-        Assume.assumeNotNull(iemp);
-        Assume.assumeNotNull(agent);
+        assertNotNull(iemp);
+        assertNotNull(agent);
     }
 
     @Test

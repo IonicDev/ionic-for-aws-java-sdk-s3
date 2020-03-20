@@ -1,5 +1,5 @@
 /*
- * (c) 2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -8,6 +8,7 @@ package com.ionic.cloudstorage.awss3;
 
 import static org.junit.Assert.*;
 
+import com.ionic.sdk.error.IonicException;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.ionic.sdk.agent.data.MetadataMap;
 import com.ionic.sdk.agent.key.KeyAttributesMap;
@@ -20,7 +21,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.Test;
 
 
-public class IonicEncryptionMaterialsProviderUnitTest {
+public class UTIonicEncryptionMaterialsProviderTest {
 
     @Test
     public void defaultIEMPConstructor() {
@@ -31,12 +32,10 @@ public class IonicEncryptionMaterialsProviderUnitTest {
      public ExpectedException thrown = ExpectedException.none();
 
     @Test
-    public void persistorIEMPConstructor() throws AmazonS3Exception {
+    public void persistorIEMPConstructor() throws IonicException {
         DeviceProfilePersistorPlainText ptPersistor = new DeviceProfilePersistorPlainText();
-        thrown.expect(AmazonS3Exception.class);
-        thrown.expectMessage("40022 - No active device profile is set (Service: null; Status" +
-            " Code: 0; Error Code: null; Request ID: null; S3 Extended Request ID: null)");
         IonicEncryptionMaterialsProvider iemp = new IonicEncryptionMaterialsProvider(ptPersistor);
+        assertNotNull(iemp.getAgent());
     }
 
     @Test
@@ -48,7 +47,7 @@ public class IonicEncryptionMaterialsProviderUnitTest {
     }
 
     @Test
-    public void setGetDefaultMetadata() {
+    public void setGetDefaultAttributes() {
         IonicEncryptionMaterialsProvider iemp = new IonicEncryptionMaterialsProvider();
         assertTrue("DefaultAttributes were not empty by default.", iemp.getDefaultAttributes().isEmpty());
 

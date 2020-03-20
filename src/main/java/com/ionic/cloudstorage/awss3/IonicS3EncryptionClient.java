@@ -1,18 +1,11 @@
 /*
- * (c) 2017-2019 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as
+ * (c) 2017-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as
  * the Terms & Conditions (https://dev.ionic.com/use) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
 
 package com.ionic.cloudstorage.awss3;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.ByteArrayInputStream;
-import java.util.Map;
-import java.util.HashMap;
-import com.ionic.sdk.agent.request.createkey.CreateKeysRequest;
-import com.ionic.sdk.agent.request.getkey.GetKeysResponse;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.metrics.RequestMetricCollector;
@@ -31,10 +24,15 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.StringUtils;
+import com.ionic.sdk.agent.request.createkey.CreateKeysRequest;
+import com.ionic.sdk.agent.request.getkey.GetKeysResponse;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * IonicS3EncryptionClient class.
- *
  * A Ionic backed subclass of {@link com.amazonaws.services.s3.AmazonS3EncryptionClient}.
  */
 public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
@@ -58,9 +56,6 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
         this.iemp = (IonicEncryptionMaterialsProvider) kekMaterialsProvider;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public PutObjectResult putObject(PutObjectRequest req) {
         return putObject(req, new CreateKeysRequest.Key(""));
@@ -116,6 +111,7 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
      * @param bucketName The Bucket to store the Object in.
      * @param key The key to store the Object under.
      * @param content A string to store as Object content.
+     * @param ionicKey The CreateKeysRequest.Key containing attributes for associated Ionic Key.
      * @return A {@link com.amazonaws.services.s3.model.PutObjectResult} object containing the
      *         information returned by Amazon S3 for the newly created object.
      * @see #putObject(PutObjectRequest, CreateKeysRequest.Key)
@@ -142,8 +138,7 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
      * setting {@link com.ionic.sdk.agent.key.KeyAttributesMap Attributes} and mutableAttributes on
      * the Ionic Key associated with the object.
      *
-     * <p>
-     * Example of creating a CreateKeysRequest.Key
+     * <p>Example of creating a CreateKeysRequest.Key
      * {@link com.ionic.sdk.agent.request.createkey.CreateKeysRequest.Key}.
      *
      * <pre>
@@ -216,8 +211,9 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
 
     /**
      * A container class that holds a pairing of
-     * {@link com.ionic.sdk.agent.request.createkey.CreateKeysResponse.Key} and
-     * {@link com.amazonaws.services.s3.model.S3Object} returned by {@link #getObjectAndKey()}
+     * {@link com.ionic.sdk.agent.request.getkey.GetKeysResponse.Key} and
+     * {@link com.amazonaws.services.s3.model.S3Object} returned by
+     * {@link IonicS3EncryptionClient#getObjectAndKey(GetObjectRequest)}
      * methods.
      */
     public class IonicKeyS3ObjectPair {
@@ -232,7 +228,7 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
         /**
          * Returns a GetKeysResponse.Key.
          *
-         * @return a {@link com.ionic.sdk.agent.request.createkey.CreateKeysResponse.Key}
+         * @return a {@link com.ionic.sdk.agent.request.getkey.GetKeysResponse.Key}
          */
         public GetKeysResponse.Key getKey() {
             return this.key;
@@ -248,9 +244,6 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public S3Object getObject(GetObjectRequest req) {
         S3Object obj = super.getObject(req);
@@ -288,9 +281,9 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
 
     /**
      * A container class that holds a pairing of
-     * {@link com.ionic.sdk.agent.request.createkey.CreateKeysResponse.Key} and
-     * {@link com.amazonaws.services.s3.model.ObjectMetadata} returned by
-     * {@link #readAllBytesAndKey()} methods.
+     * {@link com.ionic.sdk.agent.request.getkey.GetKeysResponse.Key} and
+     * {@link com.amazonaws.services.s3.model.ObjectMetadata} returned by the
+     * {@link IonicS3EncryptionClient#getObjectAndKey(GetObjectRequest, File)} method.
      */
     public class IonicKeyObjectMetadataPair {
         private GetKeysResponse.Key key;
@@ -320,9 +313,6 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public ObjectMetadata getObject(GetObjectRequest req, File dest) {
         ObjectMetadata meta = super.getObject(req, dest);
@@ -361,8 +351,7 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
      * setting {@link com.ionic.sdk.agent.key.KeyAttributesMap Attributes} and mutableAttributes on
      * the Ionic Key associated with the object.
      *
-     * <p>
-     * Example of creating a CreateKeysRequest.Key
+     * <p>Example of creating a CreateKeysRequest.Key
      * {@link com.ionic.sdk.agent.request.createkey.CreateKeysRequest.Key}.
      *
      * <pre>
@@ -407,9 +396,19 @@ public class IonicS3EncryptionClient extends AmazonS3EncryptionClient
         return super.initiateMultipartUpload(cryptoReq);
     }
 
+    /**
+     * Getter for the IonicEncryptionMaterialsProvider backing the IonicS3EncryptionClient.
+     *
+     * @return the IonicEncryptionMaterialsProvider backing the IonicS3EncryptionClient.
+     */
+    public IonicEncryptionMaterialsProvider getIonicEncryptionMaterialsProvider() {
+        return iemp;
+    }
+
     private void rejectNull(Object parameterValue, String errorMessage) {
-        if (parameterValue == null)
+        if (parameterValue == null) {
             throw new IllegalArgumentException(errorMessage);
+        }
     }
 
 }
