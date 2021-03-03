@@ -1,5 +1,5 @@
 /*
- * (c) 2017-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as
+ * (c) 2017-2021 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as
  * the Terms & Conditions (https://dev.ionic.com/use) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */

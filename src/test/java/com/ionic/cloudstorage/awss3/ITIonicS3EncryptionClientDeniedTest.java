@@ -1,5 +1,5 @@
 /*
- * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2021 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -14,6 +14,7 @@ import com.ionic.sdk.error.IonicException;
 import java.io.IOException;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.hamcrest.core.StringStartsWith;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -69,8 +70,7 @@ public class ITIonicS3EncryptionClientDeniedTest {
         ionicS3Client.putObject(testBucket, key, testString);
 
         thrown.expect(AmazonS3Exception.class);
-        thrown.expectMessage("40024 - Key fetch or creation was denied by the server " +
-            "(Service: Ionic Security; Status Code: 40024; Error Code: 40024; Request ID: null; S3 Extended Request ID: null");
+        thrown.expectMessage(new StringStartsWith("40024 - Key fetch or creation was denied by the server "));
 
         log.info("Getting Object " + key + " from bucket " + testBucket + " with Ionic Encryption Client");
         ionicS3Client.getObject(testBucket, key);

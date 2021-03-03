@@ -1,5 +1,5 @@
 /*
- * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2021 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -42,6 +42,8 @@ public class TestUtils {
     protected static String testDirSourceProp = "dirSource";
     protected static String testDirDestProp = "dirDest";
     protected static String testPolicyDeniedProp = "policyDenied";
+    protected static String testRetriesCountProp = "retriesCount";
+    protected static String testRetriesDelayProp = "retriesDelay";
 
     protected static String defaultPayload = "Hello World.";
 
@@ -105,6 +107,24 @@ public class TestUtils {
             file = new File(filepath);
         }
         return file;
+    }
+
+    protected static int getRetriesCount() {
+        String retries = System.getProperty(testRetriesCountProp);
+        if (retries != null) {
+            return Integer.parseInt(retries);
+        } else {
+            return 0;
+        }
+    }
+
+    protected static int getRetryDelay() {
+        String delay = System.getProperty(testRetriesDelayProp);
+        if (delay != null) {
+            return Integer.parseInt(delay);
+        } else {
+            return 0;
+        }
     }
 
     protected static DeviceProfilePersistorPlainText getPersistor() throws IonicException {
