@@ -1,5 +1,5 @@
 /*
- * (c) 2019-2020 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
+ * (c) 2019-2021 Ionic Security Inc. By using this code, I agree to the LICENSE included, as well as the
  * Terms & Conditions (https://dev.ionic.com/use.html) and the Privacy Policy
  * (https://www.ionic.com/privacy-notice/).
  */
@@ -33,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
 /* TODO: Move sourceDir, destDir, sourceFile, destFile into setup and add
@@ -79,7 +80,11 @@ public class ITTransferManagerTest {
         assertNotNull(testBucket);
     }
 
+    @Rule
+    public RetryRule rule = new RetryRule();
+
     @Test
+    @Retry
     public void uploadAndDownloadFile() throws IOException, InterruptedException {
         String key = TestUtils.getTestObjectKey();
         if (key == null) {
@@ -144,6 +149,7 @@ public class ITTransferManagerTest {
             IOUtils.contentEquals(obj.getObjectContent(), FileUtils.openInputStream(sourceFile)));
     }
 
+    @Retry
     @Test
     public void uploadAndDownloadDirectory() throws IOException, InterruptedException {
         String bucketDirectory = TestUtils.getTestObjectKey();
@@ -168,6 +174,7 @@ public class ITTransferManagerTest {
             TestUtils.directoryContentsMatch(sourceDir, new File(destDir, bucketDirectory), true));
     }
 
+    @Retry
     @Test
     public void uploadFileList() throws IOException, InterruptedException {
         String bucketDirectory = TestUtils.getTestObjectKey();

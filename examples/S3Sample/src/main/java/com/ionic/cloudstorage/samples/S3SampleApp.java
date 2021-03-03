@@ -455,9 +455,9 @@ public class S3SampleApp {
 
     public static MetadataMap getMetadataMap() {
         MetadataMap applicationMetadata = new MetadataMap();
-        applicationMetadata.set("ionic-application-name", "IonicS3Example");
+        applicationMetadata.set("ionic-application-name", "MachinaS3Example");
         applicationMetadata.set("ionic-application-version", Version.getFullVersion());
-        applicationMetadata.set("ionic-client-type", "IPCS S3 Java");
+        applicationMetadata.set("ionic-client-type", "Machina Tools for Cloud Storage (S3 Java)");
         applicationMetadata.set("ionic-client-version", Version.getFullVersion());
 
         return applicationMetadata;
